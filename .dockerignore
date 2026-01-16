@@ -1,0 +1,29 @@
+# Build artifacts
+build/
+cmake-build-*/
+*.o
+*.a
+*.so
+*.dylib
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# Map editor (not needed for compilation)
+map-editor/node_modules/
+map-editor/package-lock.json
+
+# Documentation that's not needed for build
+*.md
+!CMakeLists.txt
+LICENSE
