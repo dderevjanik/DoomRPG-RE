@@ -1,6 +1,8 @@
 #ifndef DOOMRPG_H__
 #define DOOMRPG_H__
 
+#include <stdint.h>  // For cross-platform integer types
+
 #ifndef __BYTEBOOL__
 #define __BYTEBOOL__
 typedef enum { false, true } boolean;

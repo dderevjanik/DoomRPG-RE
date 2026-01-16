@@ -2,6 +2,7 @@
 //Using SDL and standard IO
 #include <SDL.h>
 #include <stdio.h>
+#include <stdint.h>
 
 #include "Z_Zone.h"
 #include "DoomRPG.h"
@@ -400,7 +401,7 @@ static void setBind(int* keyBinds, int keycode)
 {
 	int i;
 
-	// Examina si existe anteriormente, si es así, se desvinculará de la lista
+	// Examina si existe anteriormente, si es asï¿½, se desvincularï¿½ de la lista
 	// Examines whether it exists previously, if so, it will be unbind from the list
 	for (i = 0; i < KEYBINDS_MAX; i++) {
 		if (keyBinds[i] == keycode) {
@@ -1219,10 +1220,10 @@ int File_readInt(SDL_RWops* rw)
 
 int File_readLong(SDL_RWops* rw)
 {
-	long lData;
+	int32_t lData; // Use int32_t to ensure 4 bytes on all platforms
 
 	if (rw) {
-		SDL_RWread(rw, &lData, sizeof(long), 1);
+		SDL_RWread(rw, &lData, sizeof(int32_t), 1);
 	}
 
 	return (int)SDL_SwapLE32(lData);
