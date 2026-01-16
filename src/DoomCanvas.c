@@ -1,6 +1,8 @@
 
 #include <SDL.h>
+#ifndef __EMSCRIPTEN__
 #include <SDL_mixer.h>
+#endif
 #include <stdio.h>
 #include <string.h>
 
@@ -368,7 +370,7 @@ void DoomCanvas_combatState(DoomCanvas_t* doomCanvas)
 		DoomCanvas_drawRGB(doomCanvas);
 	}
 
-	// En el código original esta función está en la función "Hud_drawEffects", pero decidí moverla aquí, 
+	// En el cï¿½digo original esta funciï¿½n estï¿½ en la funciï¿½n "Hud_drawEffects", pero decidï¿½ moverla aquï¿½, 
 	// esto evita que se superponga a otros objetos dibujados previamente.
 	// 
 	// In the original code this function is in the "Hud_drawEffects" function, but I decided to move it here, 
@@ -427,7 +429,7 @@ void DoomCanvas_dialogState(DoomCanvas_t* doomCanvas)
 	DoomCanvas_updateView(doomCanvas);
 	DoomCanvas_drawRGB(doomCanvas);
 
-	// En el código original esta función está en la función "Hud_drawEffects", pero decidí moverla aquí, 
+	// En el cï¿½digo original esta funciï¿½n estï¿½ en la funciï¿½n "Hud_drawEffects", pero decidï¿½ moverla aquï¿½, 
 	// esto evita que se superponga a otros objetos dibujados previamente.
 	// 
 	// In the original code this function is in the "Hud_drawEffects" function, but I decided to move it here, 
@@ -1214,7 +1216,7 @@ void DoomCanvas_drawStory(DoomCanvas_t* doomCanvas)
 void DoomCanvas_drawRGB(DoomCanvas_t* doomCanvas)
 {
 	// Port:
-	// aplicar esta función antes de actualizar el framebuffer
+	// aplicar esta funciï¿½n antes de actualizar el framebuffer
 	// apply this function before updating the framebuffer
 	//if (doomCanvas->doomRpg->player->berserkerTics) {
 		//Render_setBerserkColor(doomCanvas->doomRpg->render);
@@ -2566,7 +2568,7 @@ void DoomCanvas_playingState(DoomCanvas_t* doomCanvas)
 
 			DoomCanvas_updateView(doomCanvas);
 			applyBerserk = true;
-		} // <- Agregué el corchete aquí, ya que necesito que los gráficos se actualicen siempre en cada cuadro, 
+		} // <- Agreguï¿½ el corchete aquï¿½, ya que necesito que los grï¿½ficos se actualicen siempre en cada cuadro, 
 		  //    sin que intervengan las actualizaciones del movimiento del jugador.
 		  // <- I added the bracket here as I need the graphics to always update on every frame, 
 		  //    without player movement updates intervening.
@@ -2585,7 +2587,7 @@ void DoomCanvas_playingState(DoomCanvas_t* doomCanvas)
 
 			DoomCanvas_drawRGB(doomCanvas);
 
-			// En el código original esta función está en la función "Hud_drawEffects", pero decidí moverla aquí, 
+			// En el cï¿½digo original esta funciï¿½n estï¿½ en la funciï¿½n "Hud_drawEffects", pero decidï¿½ moverla aquï¿½, 
 			// esto evita que se superponga a otros objetos dibujados previamente.
 			// 
 			// In the original code this function is in the "Hud_drawEffects" function, but I decided to move it here, 

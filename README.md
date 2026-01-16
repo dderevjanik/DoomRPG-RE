@@ -27,3 +27,13 @@
    docker run --rm -v $(pwd)/output:/output doom-rpg-re sh -c "cp /app/build/src/DoomRPG /output/"
    ```
    The binary will be available in the `output` directory on your host.
+
+## Building for Web (Emscripten)
+
+1. Install Emscripten by following the instructions at https://emscripten.org/docs/getting_started/downloads.html. (or use brew)
+2. Build the project for Web:
+   ```sh
+   mkdir build-web && cd build-web
+   emcmake cmake .. 
+   emmake make 
+   ```

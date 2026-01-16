@@ -1,7 +1,10 @@
 #ifndef SOUND_H__
 #define SOUND_H__
 
+#ifndef __EMSCRIPTEN__
 #include <SDL_mixer.h>
+#include <fluidsynth.h>
+#endif
 
 struct DoomRPG_s;
 struct Image_s;
@@ -20,13 +23,17 @@ typedef struct AudioFile_s
 	void* ptr;
 } AudioFile_t;
 
-#include <fluidsynth.h>
 typedef struct SoundChannel_s
 {
 	//int heap;
+#ifdef __EMSCRIPTEN__
+	void* mediaAudioSound;	// Stub for Emscripten (audio disabled)
+	void* mediaAudioMusic;	// Stub for Emscripten (audio disabled)
+#else
 	Mix_Chunk* mediaAudioSound;
 	//Mix_Music* mediaAudioMusic;
 	fluid_player_t* mediaAudioMusic;
+#endif
 	int size;
 	//short resourceID;
 	//byte field_0xe;
