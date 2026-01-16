@@ -19,12 +19,20 @@ RUN apt-get update && apt-get install -y \
 
 # Install CMake 3.25+ from source (Ubuntu 22.04 only has 3.22.1)
 ARG CMAKE_VERSION=3.28.3
-RUN wget https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}/cmake-${CMAKE_VERSION}-linux-aarch64.tar.gz && \
-    tar -xzf cmake-${CMAKE_VERSION}-linux-aarch64.tar.gz -C /opt && \
-    rm cmake-${CMAKE_VERSION}-linux-aarch64.tar.gz && \
-    ln -s /opt/cmake-${CMAKE_VERSION}-linux-aarch64/bin/cmake /usr/local/bin/cmake && \
-    ln -s /opt/cmake-${CMAKE_VERSION}-linux-aarch64/bin/ctest /usr/local/bin/ctest && \
-    ln -s /opt/cmake-${CMAKE_VERSION}-linux-aarch64/bin/cpack /usr/local/bin/cpack
+RUN ARCH=$(uname -m) && \
+    if [ "$ARCH" = "x86_64" ]; then \
+        CMAKE_ARCH="x86_64"; \
+    elif [ "$ARCH" = "aarch64" ]; then \
+        CMAKE_ARCH="aarch64"; \
+    else \
+        echo "Unsupported architecture: $ARCH"; exit 1; \
+    fi && \
+    wget https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}/cmake-${CMAKE_VERSION}-linux-${CMAKE_ARCH}.tar.gz && \
+    tar -xzf cmake-${CMAKE_VERSION}-linux-${CMAKE_ARCH}.tar.gz -C /opt && \
+    rm cmake-${CMAKE_VERSION}-linux-${CMAKE_ARCH}.tar.gz && \
+    ln -s /opt/cmake-${CMAKE_VERSION}-linux-${CMAKE_ARCH}/bin/cmake /usr/local/bin/cmake && \
+    ln -s /opt/cmake-${CMAKE_VERSION}-linux-${CMAKE_ARCH}/bin/ctest /usr/local/bin/ctest && \
+    ln -s /opt/cmake-${CMAKE_VERSION}-linux-${CMAKE_ARCH}/bin/cpack /usr/local/bin/cpack
 
 # Set working directory
 WORKDIR /app
