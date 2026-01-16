@@ -1,0 +1,46 @@
+name: Build DoomRPG-RE with Docker
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build-and-upload:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image
+        run: docker build -t doom-rpg-re .
+
+      - name: Extract binary from Docker image
+        run: |
+          mkdir -p output
+          docker run --rm -v ${{ github.workspace }}/output:/output doom-rpg-re sh -c "cp /app/build/src/DoomRPG /output/"
+
+      - name: Upload binary artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: DoomRPG-binary
+          path: output/DoomRPG
+
+  build-only:
+    if: github.ref != 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image
+        run: docker build -t doom-rpg-re .
