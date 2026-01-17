@@ -203,7 +203,7 @@ info = info_low | (info_high << 16)
 
 ### 5. Tile Events Section
 
-Event triggers for map tiles.
+Event triggers for map tiles. Each tile event associates a tile position with a sequence of bytecode commands.
 
 | Offset | Size | Type | Field | Description |
 |--------|------|------|-------|-------------|
@@ -217,17 +217,38 @@ Event triggers for map tiles.
 
 **Event size: 4 bytes per event**
 
-**Event Data Format:**
+**Event Data Format (32-bit packed integer):**
+
+| Bits | Mask | Field | Description |
+|------|------|-------|-------------|
+| 0-9 | 0x3FF | tileIndex | Tile position (0-1023, calculated as `y*32 + x`) |
+| 10-18 | 0x7FC00 | commandIndex | Starting index in bytecode array |
+| 19-24 | 0x1F80000 | commandCount | Number of bytecode commands |
+| 25-28 | 0x1E000000 | eventState | Current state (0-9) for state machine events |
+| 29-31 | 0xE0000000 | eventFlags | Event flags (see below) |
+
+**Event Flags:**
+
+| Bit | Value | Description |
+|-----|-------|-------------|
+| 29 | 0x20000000 | EVENT_FLAG_BLOCKINPUT - Blocks input during execution |
+
+**Extracting Event Data (C code):**
+```c
+int tileIndex = event & 0x3FF;
+int commandIndex = (event & 0x7FC00) >> 10;
+int commandCount = (event & 0x1F80000) >> 19;
+int eventState = (event & 0x1E000000) >> 25;
+int eventFlags = (event & 0xE0000000) >> 29;
 ```
-Bits 0-9:   Tile index (0-1023)
-Bits 19-24: Event flags (if set, marks as BIT_AM_EVENTS on automap)
-```
+
+**Note:** If bits 19-24 (commandCount) are set, the tile is marked with `BIT_AM_EVENTS` on the automap.
 
 ---
 
 ### 6. ByteCodes Section
 
-Script bytecode for map logic.
+Script bytecode for map logic. Bytecodes are commands executed when tile events are triggered.
 
 | Offset | Size | Type | Field | Description |
 |--------|------|------|-------|-------------|
@@ -237,14 +258,83 @@ Script bytecode for map logic.
 
 | Size | Type | Field | Description |
 |------|------|-------|-------------|
-| 1 | byte | id | Bytecode instruction ID |
-| 4 | int | arg1 | First argument |
-| 4 | int | arg2 | Second argument |
+| 1 | byte | id | Bytecode instruction ID (event type) |
+| 4 | int | arg1 | First argument (instruction-specific) |
+| 4 | int | arg2 | Second argument (condition/state flags) |
 
 **ByteCode size: 9 bytes per entry**
 
-**Notable Bytecode IDs:**
-- `34` (EV_CHANGESPRITE): Changes sprite appearance. `arg1 >> 13` = new sprite ID
+**Bytecode Array Structure:**
+```c
+// Each bytecode entry is stored as 3 ints in the array
+mapByteCode[(index * 3) + 0] = id;    // BYTE_CODE_ID
+mapByteCode[(index * 3) + 1] = arg1;  // BYTE_CODE_ARG1
+mapByteCode[(index * 3) + 2] = arg2;  // BYTE_CODE_ARG2
+```
+
+**arg2 Condition Flags:**
+
+| Bits | Mask | Description |
+|------|------|-------------|
+| 0-8 | 0x1FF | Trigger condition flags |
+| 9 | 0x200 | ARG2_FLAG_MODIFYWORLD - Clear this command after execution (one-time event) |
+| 12-15 | 0xF000 | Key requirement flags |
+| 16-24 | 0x1FF0000 | State requirement flags |
+
+#### Complete Event Type List
+
+| ID | Name | Description | arg1 Format |
+|----|------|-------------|-------------|
+| 1 | EV_GOTO | Teleport player to coordinates | `x \| (y << 8) \| (angle << 16)` |
+| 2 | EV_CHANGEMAP | Change to another map | Map ID |
+| 3 | EV_TRIGGER | Trigger event at coordinates | `x \| (y << 8)` |
+| 4 | EV_MESSAGE | Show HUD message | String index |
+| 5 | EV_PAIN | Damage the player | Damage amount |
+| 6 | EV_MOVELINE | Move/animate a line (door) | Line index |
+| 7 | EV_SHOW | Show a hidden sprite | `spriteIndex \| (flags << 16)` |
+| 8 | EV_DIALOG | Show dialog with back option | String index |
+| 9 | EV_GIVEMAP | Reveal the automap | - |
+| 10 | EV_PASSWORD | Prompt for password | `passCodeID \| (stringID << 8)` |
+| 11 | EV_CHANGESTATE | Set event state | `x \| (y << 8) \| (state << 16)` |
+| 12 | EV_LOCK | Lock a line (door) | Line index |
+| 13 | EV_UNLOCK | Unlock a line (door) | Line index |
+| 14 | EV_TOGGLELOCK | Toggle line lock state | Line index |
+| 15 | EV_OPENLINE | Open a door line | Line index |
+| 16 | EV_CLOSELINE | Close a door line | Line index |
+| 17 | EV_MOVELINE2 | Alternate line movement | Line index |
+| 18 | EV_HIDE | Hide entities at coordinates | `x \| (y << 8)` |
+| 19 | EV_NEXTSTATE | Increment event state | `x \| (y << 8)` |
+| 20 | EV_PREVSTATE | Decrement event state | `x \| (y << 8)` |
+| 21 | EV_INCSTAT | Increase player stat | `statType \| (amount << 8)` |
+| 22 | EV_DECSTAT | Decrease player stat | `statType \| (amount << 8)` |
+| 23 | EV_REQSTAT | Require player stat | `statType \| (amount << 8) \| (msgID << 16)` |
+| 24 | EV_FORCEMESSAGE | Force status bar message | String index |
+| 25 | EV_ANIM | Spawn animation | `x \| (y << 8) \| (animID << 16)` |
+| 26 | EV_cF | Show dialog without back | String index |
+| 27 | EV_SAVEGAME | Trigger save game | `strID \| (x << 8) \| (y << 16) \| (angle << 24)` |
+| 28 | EV_ABORTMOVE | Cancel player movement | - |
+| 29 | EV_SCREENSHAKE | Shake the screen | `duration \| (intensity << 12) \| (speed << 24)` |
+| 30 | EV_CHANGEFLOORCOLOR | Change floor color | RGB color value |
+| 31 | EV_CHANGECEILCOLOR | Change ceiling color | RGB color value |
+| 32 | EV_ENABLEWEAPONS | Enable/disable weapons | 0 = disable, 1 = enable |
+| 33 | EV_OPENSTORE | Open the store menu | Store parameter |
+| 34 | EV_CHANGESPRITE | Change sprite appearance | `x \| (y << 5) \| (flags << 10) \| (spriteID << 13)` |
+| 35 | EV_SPAWNPARTICLES | Spawn particle effects | `r \| (g << 8) \| (b << 16) \| (type << 24) \| (count << 29)` |
+| 36 | EV_REFRESHVIEW | Force view refresh | - |
+| 37 | EV_WAIT | Pause execution | Wait time in milliseconds |
+| 38 | EV_ACTIVE_PORTAL | Activate monster portal | - |
+| 39 | EV_CHECK_COMPLETED_LEVEL | Check level completion | `stringID \| (levelRange << 16)` |
+| 40 | EV_NOTE | Add notebook entry | String index |
+| 41 | EV_CHECK_KEY | Check for key item | Key type (0=green, 1=yellow, 2=blue, 3=red) |
+| 42 | EV_PLAYSOUND | Play sound effect | Sound ID |
+
+**Event Execution Flow:**
+1. Player steps on a tile or triggers an action
+2. Engine finds tile event by tile index
+3. Extracts commandIndex and commandCount from event data
+4. Iterates through bytecode commands at that index
+5. For each command, checks state/condition flags in arg2
+6. Executes matching commands via `Game_executeEvent()`
 
 ---
 
