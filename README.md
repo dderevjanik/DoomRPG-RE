@@ -33,7 +33,6 @@
 1. Install Emscripten by following the instructions at https://emscripten.org/docs/getting_started/downloads.html. (or use brew)
 2. Build the project for Web:
    ```sh
-   mkdir build-web && cd build-web
-   emcmake cmake .. 
-   emmake make 
+   ./build-web.sh
+   http-server ./build-web/src/
    ```
