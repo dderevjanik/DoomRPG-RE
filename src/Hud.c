@@ -219,7 +219,7 @@ void Hud_drawBottomBar(Hud_t* hud)
 
         if (weapon == 0) {
             DoomCanvas_drawImageSpecial(doomCanvas, img, 0, hud->iconSheetHeight << 1, hud->iconSheetWidth, hud->iconSheetHeight, 0, hud->statusAmmoXpos + cx, dy, 0x24);
-            strncpy(hud->ammoNum, "--", 4);
+            strncpy(hud->ammoNum, "--", sizeof(hud->ammoNum));
         }
         else {
             combat = hud->doomRpg->combat;
@@ -299,7 +299,7 @@ void Hud_drawEffects(Hud_t* hud)
     }
 
     if (doomRpg->player->berserkerTics) {
-        // Bloqueo esta línea ya que la puse en otra función.
+        // Bloqueo esta lï¿½nea ya que la puse en otra funciï¿½n.
         // I block this line since I put it in another function.
         //{
         //    Render_setBerserkColor(doomRpg->render);
