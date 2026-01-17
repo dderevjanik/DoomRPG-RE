@@ -1,4 +1,10 @@
+
 # Doom RPG RE
+
+## Play Online
+
+- [Play DoomRPG in your browser](https://dderevjanik.github.io/DoomRPG-RE/DoomRPG.html)
+- [BSP Map Viewer Tool](https://dderevjanik.github.io/DoomRPG-RE/tools/bsp-viewer)
 
 ## Building on macOS
 

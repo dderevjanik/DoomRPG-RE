@@ -80,6 +80,11 @@ build_project() {
         echo "  cd build-web/src"
         echo "  python3 -m http.server 8000"
         echo "  # Then open http://localhost:8000/DoomRPG.html"
+
+        # Copy tools folder into build-web/src
+        print_info "Copying tools/ folder into build-web/src..."
+        cp -r tools build-web/src/
+        print_success "tools/ folder copied to build-web/src."
     else
         print_error "Build failed! Output files not found."
         exit 1

@@ -1,0 +1,720 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DoomRPG BSP Map Viewer</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #1a1a1a;
+            color: #fff;
+        }
+        h1 {
+            color: #ff3333;
+            margin-bottom: 10px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .controls {
+            margin-bottom: 20px;
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .drop-zone {
+            border: 2px dashed #555;
+            border-radius: 8px;
+            padding: 20px 30px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: #2a2a2a;
+        }
+        .drop-zone:hover, .drop-zone.drag-over {
+            border-color: #ff3333;
+            background: rgba(255, 51, 51, 0.1);
+        }
+        input[type="file"] {
+            display: none;
+        }
+        .info-panel {
+            background: #2a2a2a;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+        }
+        .info-panel.visible {
+            display: block;
+        }
+        .info-panel h3 {
+            margin: 0 0 10px 0;
+            color: #ff3333;
+        }
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 10px;
+        }
+        .info-item {
+            background: #333;
+            padding: 8px 12px;
+            border-radius: 4px;
+        }
+        .info-item label {
+            color: #888;
+            font-size: 12px;
+            display: block;
+        }
+        .info-item span {
+            color: #fff;
+            font-weight: bold;
+        }
+        #canvas-container {
+            background: #000;
+            border-radius: 8px;
+            overflow: hidden;
+            position: relative;
+        }
+        canvas {
+            display: block;
+        }
+        .legend {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(0,0,0,0.8);
+            padding: 10px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 5px;
+        }
+        .legend-color {
+            width: 20px;
+            height: 3px;
+        }
+        .checkbox-group {
+            display: flex;
+            gap: 15px;
+            background: #2a2a2a;
+            padding: 10px 15px;
+            border-radius: 8px;
+        }
+        .checkbox-group label {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            cursor: pointer;
+        }
+        .zoom-controls {
+            display: flex;
+            gap: 5px;
+        }
+        .zoom-controls button {
+            background: #333;
+            color: #fff;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .zoom-controls button:hover {
+            background: #444;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>DoomRPG BSP Map Viewer</h1>
+
+        <div class="controls">
+            <div class="drop-zone" id="drop-zone">
+                Drop .bsp file here or click to select
+            </div>
+            <input type="file" id="file-input" accept=".bsp">
+
+            <div class="checkbox-group">
+                <label>
+                    <input type="checkbox" id="show-nodes" checked>
+                    Nodes
+                </label>
+                <label>
+                    <input type="checkbox" id="show-lines" checked>
+                    Lines
+                </label>
+                <label>
+                    <input type="checkbox" id="show-sprites" checked>
+                    Sprites
+                </label>
+                <label>
+                    <input type="checkbox" id="show-grid">
+                    Grid
+                </label>
+            </div>
+
+            <div class="zoom-controls">
+                <button id="zoom-in">+</button>
+                <button id="zoom-out">-</button>
+                <button id="zoom-fit">Fit</button>
+            </div>
+        </div>
+
+        <div class="info-panel" id="info-panel">
+            <h3>Map Info</h3>
+            <div class="info-grid">
+                <div class="info-item">
+                    <label>Map Name</label>
+                    <span id="info-name">-</span>
+                </div>
+                <div class="info-item">
+                    <label>Nodes</label>
+                    <span id="info-nodes">-</span>
+                </div>
+                <div class="info-item">
+                    <label>Lines</label>
+                    <span id="info-lines">-</span>
+                </div>
+                <div class="info-item">
+                    <label>Sprites</label>
+                    <span id="info-sprites">-</span>
+                </div>
+                <div class="info-item">
+                    <label>Floor Color</label>
+                    <span id="info-floor-color">-</span>
+                </div>
+                <div class="info-item">
+                    <label>Ceiling Color</label>
+                    <span id="info-ceiling-color">-</span>
+                </div>
+                <div class="info-item">
+                    <label>Spawn Index</label>
+                    <span id="info-spawn">-</span>
+                </div>
+            </div>
+        </div>
+
+        <div id="canvas-container">
+            <canvas id="canvas" width="1024" height="768"></canvas>
+            <div class="legend">
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #00ff00;"></div>
+                    <span>Nodes</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #ff6600;"></div>
+                    <span>Lines (walls)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #ff00ff; width: 8px; height: 8px; border-radius: 50%;"></div>
+                    <span>Sprites</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #ffff00; width: 8px; height: 8px; border-radius: 50%;"></div>
+                    <span>Player Spawn</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // BSP Parser
+        class BSPReader {
+            constructor(buffer) {
+                this.data = new Uint8Array(buffer);
+                this.pos = 0;
+            }
+
+            readByte() {
+                return this.data[this.pos++];
+            }
+
+            readShort() {
+                const low = this.data[this.pos++];
+                const high = this.data[this.pos++];
+                let value = (high << 8) | low;
+                // Convert to signed
+                if (value >= 0x8000) value -= 0x10000;
+                return value;
+            }
+
+            readUShort() {
+                const low = this.data[this.pos++];
+                const high = this.data[this.pos++];
+                return (high << 8) | low;
+            }
+
+            readInt() {
+                const b0 = this.data[this.pos++];
+                const b1 = this.data[this.pos++];
+                const b2 = this.data[this.pos++];
+                const b3 = this.data[this.pos++];
+                let value = (b3 << 24) | (b2 << 16) | (b1 << 8) | b0;
+                return value;
+            }
+
+            readShiftCoord() {
+                return this.readByte() << 3;
+            }
+
+            readString(length) {
+                let str = '';
+                for (let i = 0; i < length; i++) {
+                    const c = this.data[this.pos++];
+                    if (c === 0) {
+                        this.pos += length - i - 1;
+                        break;
+                    }
+                    str += String.fromCharCode(c);
+                }
+                return str;
+            }
+        }
+
+        class BSPMap {
+            constructor() {
+                this.header = null;
+                this.nodes = [];
+                this.lines = [];
+                this.sprites = [];
+            }
+
+            parse(buffer) {
+                const reader = new BSPReader(buffer);
+
+                // Parse Header (33 bytes)
+                this.header = {
+                    mapName: reader.readString(16),
+                    floorColor: {
+                        r: reader.readByte(),
+                        g: reader.readByte(),
+                        b: reader.readByte()
+                    },
+                    ceilingColor: {
+                        r: reader.readByte(),
+                        g: reader.readByte(),
+                        b: reader.readByte()
+                    },
+                    floorTex: reader.readByte(),
+                    ceilingTex: reader.readByte(),
+                    introColor: {
+                        r: reader.readByte(),
+                        g: reader.readByte(),
+                        b: reader.readByte()
+                    },
+                    loadMapID: reader.readByte(),
+                    mapSpawnIndex: reader.readShort(),
+                    mapSpawnDir: reader.readByte(),
+                    mapCameraSpawnIndex: reader.readShort()
+                };
+
+                // Parse Nodes
+                const nodesLength = reader.readShort();
+                this.nodes = [];
+                for (let i = 0; i < nodesLength; i++) {
+                    const node = {
+                        x1: reader.readShiftCoord(),
+                        y1: reader.readShiftCoord(),
+                        x2: reader.readShiftCoord(),
+                        y2: reader.readShiftCoord(),
+                        arg1_high: reader.readByte(),
+                        arg1_low: reader.readShiftCoord(),
+                        args2_low: reader.readShort(),
+                        args2_high: reader.readShort()
+                    };
+                    node.args1 = (node.arg1_high << 16) | node.arg1_low;
+                    node.args2 = node.args2_low | (node.args2_high << 16);
+                    this.nodes.push(node);
+                }
+
+                // Parse Lines
+                const linesLength = reader.readShort();
+                this.lines = [];
+                for (let i = 0; i < linesLength; i++) {
+                    const line = {
+                        x1: reader.readShiftCoord(),
+                        y1: reader.readShiftCoord(),
+                        x2: reader.readShiftCoord(),
+                        y2: reader.readShiftCoord(),
+                        texture: reader.readShort(),
+                        flags: reader.readInt()
+                    };
+                    this.lines.push(line);
+                }
+
+                // Parse Sprites
+                const spritesLength = reader.readShort();
+                this.sprites = [];
+                for (let i = 0; i < spritesLength; i++) {
+                    const sprite = {
+                        x: reader.readShiftCoord(),
+                        y: reader.readShiftCoord(),
+                        info_low: reader.readByte(),
+                        info_high: reader.readShort()
+                    };
+                    sprite.info = sprite.info_low | (sprite.info_high << 8);
+                    sprite.id = sprite.info & 0x1FF;
+                    this.sprites.push(sprite);
+                }
+
+                return this;
+            }
+
+            getBounds() {
+                let minX = Infinity, minY = Infinity;
+                let maxX = -Infinity, maxY = -Infinity;
+
+                for (const node of this.nodes) {
+                    minX = Math.min(minX, node.x1, node.x2);
+                    minY = Math.min(minY, node.y1, node.y2);
+                    maxX = Math.max(maxX, node.x1, node.x2);
+                    maxY = Math.max(maxY, node.y1, node.y2);
+                }
+
+                for (const line of this.lines) {
+                    minX = Math.min(minX, line.x1, line.x2);
+                    minY = Math.min(minY, line.y1, line.y2);
+                    maxX = Math.max(maxX, line.x1, line.x2);
+                    maxY = Math.max(maxY, line.y1, line.y2);
+                }
+
+                for (const sprite of this.sprites) {
+                    minX = Math.min(minX, sprite.x);
+                    minY = Math.min(minY, sprite.y);
+                    maxX = Math.max(maxX, sprite.x);
+                    maxY = Math.max(maxY, sprite.y);
+                }
+
+                return { minX, minY, maxX, maxY };
+            }
+        }
+
+        // Renderer
+        class MapRenderer {
+            constructor(canvas) {
+                this.canvas = canvas;
+                this.ctx = canvas.getContext('2d');
+                this.map = null;
+                this.zoom = 1;
+                this.offsetX = 0;
+                this.offsetY = 0;
+                this.showNodes = true;
+                this.showLines = true;
+                this.showSprites = true;
+                this.showGrid = false;
+
+                this.setupPanning();
+            }
+
+            setupPanning() {
+                let isDragging = false;
+                let lastX, lastY;
+
+                this.canvas.addEventListener('mousedown', (e) => {
+                    isDragging = true;
+                    lastX = e.clientX;
+                    lastY = e.clientY;
+                    this.canvas.style.cursor = 'grabbing';
+                });
+
+                window.addEventListener('mousemove', (e) => {
+                    if (!isDragging) return;
+                    const dx = e.clientX - lastX;
+                    const dy = e.clientY - lastY;
+                    this.offsetX += dx;
+                    this.offsetY += dy;
+                    lastX = e.clientX;
+                    lastY = e.clientY;
+                    this.render();
+                });
+
+                window.addEventListener('mouseup', () => {
+                    isDragging = false;
+                    this.canvas.style.cursor = 'grab';
+                });
+
+                this.canvas.addEventListener('wheel', (e) => {
+                    e.preventDefault();
+                    const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1;
+                    this.zoom *= zoomFactor;
+                    this.zoom = Math.max(0.1, Math.min(10, this.zoom));
+                    this.render();
+                });
+            }
+
+            setMap(map) {
+                this.map = map;
+                this.fitToView();
+            }
+
+            fitToView() {
+                if (!this.map) return;
+
+                const bounds = this.map.getBounds();
+                const mapWidth = bounds.maxX - bounds.minX;
+                const mapHeight = bounds.maxY - bounds.minY;
+
+                const padding = 50;
+                const scaleX = (this.canvas.width - padding * 2) / mapWidth;
+                const scaleY = (this.canvas.height - padding * 2) / mapHeight;
+
+                this.zoom = Math.min(scaleX, scaleY);
+                this.offsetX = this.canvas.width / 2 - (bounds.minX + mapWidth / 2) * this.zoom;
+                this.offsetY = this.canvas.height / 2 - (bounds.minY + mapHeight / 2) * this.zoom;
+
+                this.render();
+            }
+
+            worldToScreen(x, y) {
+                return {
+                    x: x * this.zoom + this.offsetX,
+                    y: y * this.zoom + this.offsetY
+                };
+            }
+
+            render() {
+                const ctx = this.ctx;
+                ctx.fillStyle = '#000';
+                ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+
+                if (!this.map) return;
+
+                // Draw grid
+                if (this.showGrid) {
+                    this.drawGrid();
+                }
+
+                // Draw nodes
+                if (this.showNodes) {
+                    ctx.strokeStyle = '#00ff00';
+                    ctx.lineWidth = 1;
+                    ctx.globalAlpha = 0.5;
+
+                    for (const node of this.map.nodes) {
+                        const p1 = this.worldToScreen(node.x1, node.y1);
+                        const p2 = this.worldToScreen(node.x2, node.y2);
+
+                        ctx.beginPath();
+                        ctx.moveTo(p1.x, p1.y);
+                        ctx.lineTo(p2.x, p2.y);
+                        ctx.stroke();
+                    }
+                    ctx.globalAlpha = 1;
+                }
+
+                // Draw lines (walls)
+                if (this.showLines) {
+                    ctx.strokeStyle = '#ff6600';
+                    ctx.lineWidth = 2;
+
+                    for (const line of this.map.lines) {
+                        const p1 = this.worldToScreen(line.x1, line.y1);
+                        const p2 = this.worldToScreen(line.x2, line.y2);
+
+                        ctx.beginPath();
+                        ctx.moveTo(p1.x, p1.y);
+                        ctx.lineTo(p2.x, p2.y);
+                        ctx.stroke();
+                    }
+                }
+
+                // Draw sprites
+                if (this.showSprites) {
+                    for (const sprite of this.map.sprites) {
+                        const p = this.worldToScreen(sprite.x, sprite.y);
+
+                        ctx.fillStyle = '#ff00ff';
+                        ctx.beginPath();
+                        ctx.arc(p.x, p.y, 4, 0, Math.PI * 2);
+                        ctx.fill();
+
+                        // Draw sprite ID
+                        ctx.fillStyle = '#fff';
+                        ctx.font = '10px monospace';
+                        ctx.fillText(sprite.id.toString(), p.x + 6, p.y + 3);
+                    }
+                }
+
+                // Draw player spawn
+                if (this.map.header) {
+                    const spawnIndex = this.map.header.mapSpawnIndex;
+                    const spawnX = (spawnIndex % 32) * 64 + 32;
+                    const spawnY = Math.floor(spawnIndex / 32) * 64 + 32;
+                    const p = this.worldToScreen(spawnX, spawnY);
+
+                    ctx.fillStyle = '#ffff00';
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, 6, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    // Draw direction arrow
+                    const dir = this.map.header.mapSpawnDir;
+                    const angle = (dir / 256) * Math.PI * 2;
+                    const arrowLen = 15;
+                    ctx.strokeStyle = '#ffff00';
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.moveTo(p.x, p.y);
+                    ctx.lineTo(p.x + Math.cos(angle) * arrowLen, p.y - Math.sin(angle) * arrowLen);
+                    ctx.stroke();
+                }
+            }
+
+            drawGrid() {
+                const ctx = this.ctx;
+                ctx.strokeStyle = '#222';
+                ctx.lineWidth = 1;
+
+                const gridSize = 64; // Tile size
+                const bounds = this.map.getBounds();
+
+                const startX = Math.floor(bounds.minX / gridSize) * gridSize;
+                const startY = Math.floor(bounds.minY / gridSize) * gridSize;
+                const endX = Math.ceil(bounds.maxX / gridSize) * gridSize;
+                const endY = Math.ceil(bounds.maxY / gridSize) * gridSize;
+
+                for (let x = startX; x <= endX; x += gridSize) {
+                    const p1 = this.worldToScreen(x, startY);
+                    const p2 = this.worldToScreen(x, endY);
+                    ctx.beginPath();
+                    ctx.moveTo(p1.x, p1.y);
+                    ctx.lineTo(p2.x, p2.y);
+                    ctx.stroke();
+                }
+
+                for (let y = startY; y <= endY; y += gridSize) {
+                    const p1 = this.worldToScreen(startX, y);
+                    const p2 = this.worldToScreen(endX, y);
+                    ctx.beginPath();
+                    ctx.moveTo(p1.x, p1.y);
+                    ctx.lineTo(p2.x, p2.y);
+                    ctx.stroke();
+                }
+            }
+        }
+
+        // UI Setup
+        const canvas = document.getElementById('canvas');
+        const renderer = new MapRenderer(canvas);
+
+        const dropZone = document.getElementById('drop-zone');
+        const fileInput = document.getElementById('file-input');
+        const infoPanel = document.getElementById('info-panel');
+
+        function loadFile(file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const map = new BSPMap();
+                    map.parse(e.target.result);
+
+                    renderer.setMap(map);
+                    updateInfo(map);
+
+                    infoPanel.classList.add('visible');
+                    canvas.style.cursor = 'grab';
+                } catch (err) {
+                    alert('Error parsing BSP file: ' + err.message);
+                    console.error(err);
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        function updateInfo(map) {
+            document.getElementById('info-name').textContent = map.header.mapName || '(unnamed)';
+            document.getElementById('info-nodes').textContent = map.nodes.length;
+            document.getElementById('info-lines').textContent = map.lines.length;
+            document.getElementById('info-sprites').textContent = map.sprites.length;
+
+            const fc = map.header.floorColor;
+            document.getElementById('info-floor-color').innerHTML =
+                `<span style="background: rgb(${fc.b},${fc.g},${fc.r}); padding: 2px 8px; border-radius: 3px;">RGB(${fc.r},${fc.g},${fc.b})</span>`;
+
+            const cc = map.header.ceilingColor;
+            document.getElementById('info-ceiling-color').innerHTML =
+                `<span style="background: rgb(${cc.b},${cc.g},${cc.r}); padding: 2px 8px; border-radius: 3px;">RGB(${cc.r},${cc.g},${cc.b})</span>`;
+
+            document.getElementById('info-spawn').textContent =
+                `${map.header.mapSpawnIndex} (dir: ${map.header.mapSpawnDir})`;
+        }
+
+        // Event listeners
+        dropZone.addEventListener('click', () => fileInput.click());
+
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('drag-over');
+        });
+
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('drag-over');
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('drag-over');
+            if (e.dataTransfer.files.length > 0) {
+                loadFile(e.dataTransfer.files[0]);
+            }
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                loadFile(e.target.files[0]);
+            }
+        });
+
+        // Checkboxes
+        document.getElementById('show-nodes').addEventListener('change', (e) => {
+            renderer.showNodes = e.target.checked;
+            renderer.render();
+        });
+
+        document.getElementById('show-lines').addEventListener('change', (e) => {
+            renderer.showLines = e.target.checked;
+            renderer.render();
+        });
+
+        document.getElementById('show-sprites').addEventListener('change', (e) => {
+            renderer.showSprites = e.target.checked;
+            renderer.render();
+        });
+
+        document.getElementById('show-grid').addEventListener('change', (e) => {
+            renderer.showGrid = e.target.checked;
+            renderer.render();
+        });
+
+        // Zoom controls
+        document.getElementById('zoom-in').addEventListener('click', () => {
+            renderer.zoom *= 1.2;
+            renderer.render();
+        });
+
+        document.getElementById('zoom-out').addEventListener('click', () => {
+            renderer.zoom *= 0.8;
+            renderer.render();
+        });
+
+        document.getElementById('zoom-fit').addEventListener('click', () => {
+            renderer.fitToView();
+        });
+
+        // Initial render
+        renderer.render();
+    </script>
+</body>
+</html>
