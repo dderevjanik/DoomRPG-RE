@@ -2,9 +2,11 @@
 
 //Using SDL and standard IO
 #include <SDL.h>
+#ifndef __EMSCRIPTEN__
 #include <SDL_mixer.h>
-#include <stdio.h>
 #include <fluidsynth.h>
+#endif
+#include <stdio.h>
 
 #include "DoomRPG.h"
 #include "Game.h"
@@ -12,7 +14,9 @@
 
 SDLVideo_t sdlVideo;
 SDLController_t sdlController;
+#ifndef __EMSCRIPTEN__
 FluidSynth_t fluidSynth;
+#endif
 
 SDLVidModes_t sdlVideoModes[14] =
 {
@@ -103,6 +107,22 @@ void SDL_InitVideo(void)
 	sdlController.deadZoneLeft = 25;
 	sdlController.deadZoneRight = 25;
 
+#ifdef __EMSCRIPTEN__
+	// For Emscripten, simplified controller init (no haptics support in browsers)
+	if (SDL_NumJoysticks() < 1) {
+		printf("Warning: No joysticks connected!\n");
+	}
+	else {
+		printf("Joysticks connected: %d\n", SDL_NumJoysticks());
+		sdlController.gGameController = SDL_GameControllerOpen(0);
+		if (sdlController.gGameController == NULL) {
+			sdlController.gJoystick = SDL_JoystickOpen(0);
+			if (sdlController.gJoystick == NULL) {
+				printf("Warning: Unable to open joystick! SDL Error: %s\n", SDL_GetError());
+			}
+		}
+	}
+#else
 	if (SDL_NumJoysticks() < 1) {
 		printf("Warning: No joysticks connected!\n");
 	}
@@ -150,6 +170,7 @@ void SDL_InitVideo(void)
 			}
 		}
 	}
+#endif
 }
 
 void SDL_Close(void)
@@ -160,9 +181,12 @@ void SDL_Close(void)
 		SDL_GameControllerClose(sdlController.gGameController);
 	}
 
+#ifndef __EMSCRIPTEN__
+	// Haptics not supported in Emscripten
 	if (sdlController.gJoyHaptic) {
 		SDL_HapticClose(sdlController.gJoyHaptic);
 	}
+#endif
 
 	if (sdlController.gJoystick) {
 		SDL_JoystickClose(sdlController.gJoystick);
@@ -245,10 +269,14 @@ void SDL_RenderDrawCircle(SDL_Renderer* renderer, int x, int y, int r)
 
 
 //---------------
-void SDL_InitAudio(void)
+void DoomRPG_InitAudio(void)
 {
-	printf("SDL_InitAudio\n");
+	printf("DoomRPG_InitAudio\n");
 
+#ifdef __EMSCRIPTEN__
+	// Audio is disabled for Emscripten builds
+	printf("Audio disabled for web build\n");
+#else
 	fluidSynth.settings = NULL;
 	fluidSynth.synth = NULL;
 	fluidSynth.adriver = NULL;
@@ -281,15 +309,17 @@ void SDL_InitAudio(void)
 	if (Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 2048) < 0) {
 		DoomRPG_Error("Could not initialize SDL Mixer: %s", Mix_GetError());
 	}
+#endif
 }
 
-void SDL_CloseAudio(void) {
-
+void DoomRPG_CloseAudio(void) {
+#ifndef __EMSCRIPTEN__
 	delete_fluid_audio_driver(fluidSynth.adriver);
 	delete_fluid_synth(fluidSynth.synth);
 	delete_fluid_settings(fluidSynth.settings);
 
 	Mix_Quit();
+#endif
 }
 
 //--------------------

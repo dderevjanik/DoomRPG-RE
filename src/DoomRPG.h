@@ -5,7 +5,13 @@
 
 #ifndef __BYTEBOOL__
 #define __BYTEBOOL__
+#ifdef __EMSCRIPTEN__
+// Emscripten defines true/false as macros, use stdbool.h instead
+#include <stdbool.h>
+typedef bool boolean;
+#else
 typedef enum { false, true } boolean;
+#endif
 typedef unsigned char byte;
 #endif
 

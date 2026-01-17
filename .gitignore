@@ -1,3 +1,5 @@
 assets/
 build/
 output/
+build-wasm/
+build-web/

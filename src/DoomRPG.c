@@ -42,6 +42,10 @@ keyMapping_t keyMappingDefault[12] = {
 
 #include <stdarg.h> //va_list|va_start|va_end
 
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+#endif
+
 void DoomRPG_Error(const char* fmt, ...) // 0x1C648
 {
 	char errMsg[256];
@@ -50,8 +54,23 @@ void DoomRPG_Error(const char* fmt, ...) // 0x1C648
 	vsnprintf(errMsg, sizeof(errMsg), fmt, ap);
 	va_end(ap);
 
-	printf("%s", errMsg);
+	printf("DoomRPG Error: %s", errMsg);
 
+#ifdef __EMSCRIPTEN__
+	// For Emscripten, use console error and alert
+	EM_ASM({
+		console.error("DoomRPG Error: " + UTF8ToString($0));
+		alert("DoomRPG Error: " + UTF8ToString($0));
+	}, errMsg);
+
+	closeZipFile(&zipFile);
+	if (doomRpg) {
+		DoomRPG_FreeAppData(doomRpg);
+	}
+	DoomRPG_CloseAudio();
+	SDL_Close();
+	emscripten_cancel_main_loop();
+#else
 	const SDL_MessageBoxButtonData buttons[] = {
 		{ /* .flags, .buttonid, .text */        0, 0, "Ok" },
 	};
@@ -78,13 +97,14 @@ void DoomRPG_Error(const char* fmt, ...) // 0x1C648
 		buttons, /* .buttons */
 		&colorScheme /* .colorScheme */
 	};
-	
+
 	SDL_ShowMessageBox(&messageboxdata, NULL);
 	closeZipFile(&zipFile);
 	DoomRPG_FreeAppData(doomRpg);
-	SDL_CloseAudio();
+	DoomRPG_CloseAudio();
 	SDL_Close();
 	exit(0);
+#endif
 
 	//while (1) {} // draw and display forever
 }
