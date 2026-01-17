@@ -20,8 +20,24 @@
             margin-bottom: 10px;
         }
         .container {
-            max-width: 1200px;
+            max-width: 1400px;
             margin: 0 auto;
+        }
+        .main-layout {
+            display: flex;
+            gap: 20px;
+        }
+        .map-panel {
+            flex: 1;
+            min-width: 0;
+        }
+        .script-panel {
+            width: 450px;
+            flex-shrink: 0;
+            display: none;
+        }
+        .script-panel.visible {
+            display: block;
         }
         .controls {
             margin-bottom: 20px;
@@ -61,7 +77,7 @@
         }
         .info-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
             gap: 10px;
         }
         .info-item {
@@ -112,12 +128,14 @@
             background: #2a2a2a;
             padding: 10px 15px;
             border-radius: 8px;
+            flex-wrap: wrap;
         }
         .checkbox-group label {
             display: flex;
             align-items: center;
             gap: 5px;
             cursor: pointer;
+            white-space: nowrap;
         }
         .zoom-controls {
             display: flex;
@@ -134,6 +152,139 @@
         .zoom-controls button:hover {
             background: #444;
         }
+
+        /* Script Panel Styles */
+        .script-panel h3 {
+            color: #ff3333;
+            margin: 0 0 15px 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .script-panel h3 span {
+            font-size: 12px;
+            color: #888;
+            font-weight: normal;
+        }
+        .script-list {
+            background: #2a2a2a;
+            border-radius: 8px;
+            max-height: calc(100vh - 200px);
+            overflow-y: auto;
+        }
+        .tile-event {
+            border-bottom: 1px solid #333;
+            padding: 12px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .tile-event:hover {
+            background: #333;
+        }
+        .tile-event.selected {
+            background: #3a3a3a;
+            border-left: 3px solid #ff3333;
+        }
+        .tile-event-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        .tile-pos {
+            font-weight: bold;
+            color: #ffcc00;
+        }
+        .tile-index {
+            font-size: 11px;
+            color: #666;
+        }
+        .command-list {
+            font-size: 12px;
+            font-family: 'Monaco', 'Consolas', monospace;
+        }
+        .command {
+            padding: 4px 8px;
+            margin: 2px 0;
+            background: #222;
+            border-radius: 3px;
+            border-left: 2px solid #666;
+        }
+        .command .cmd-name {
+            color: #66ccff;
+            font-weight: bold;
+        }
+        .command .cmd-args {
+            color: #aaa;
+            margin-left: 8px;
+        }
+        .command .cmd-condition {
+            color: #ff9966;
+            font-size: 10px;
+            display: block;
+            margin-top: 2px;
+        }
+        .command .string-preview {
+            color: #99ff99;
+            font-style: italic;
+            display: block;
+            margin-top: 2px;
+            max-width: 380px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        /* Event type colors */
+        .cmd-goto { border-left-color: #ff6666; }
+        .cmd-changemap { border-left-color: #ff9966; }
+        .cmd-message, .cmd-dialog, .cmd-forcemessage { border-left-color: #99ff99; }
+        .cmd-moveline, .cmd-openline, .cmd-closeline { border-left-color: #6699ff; }
+        .cmd-show, .cmd-hide { border-left-color: #cc99ff; }
+        .cmd-sound { border-left-color: #ffcc66; }
+        .cmd-state { border-left-color: #66ffcc; }
+
+        .strings-panel {
+            margin-top: 20px;
+            background: #2a2a2a;
+            border-radius: 8px;
+            padding: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .strings-panel h4 {
+            margin: 0 0 10px 0;
+            color: #ff3333;
+        }
+        .string-item {
+            font-family: 'Monaco', 'Consolas', monospace;
+            font-size: 11px;
+            padding: 4px 8px;
+            margin: 2px 0;
+            background: #222;
+            border-radius: 3px;
+        }
+        .string-item .str-index {
+            color: #666;
+            margin-right: 8px;
+        }
+        .string-item .str-text {
+            color: #99ff99;
+        }
+
+        .filter-input {
+            width: 100%;
+            padding: 8px 12px;
+            background: #333;
+            border: 1px solid #444;
+            border-radius: 4px;
+            color: #fff;
+            margin-bottom: 10px;
+        }
+        .filter-input:focus {
+            outline: none;
+            border-color: #ff3333;
+        }
     </style>
 </head>
 <body>
@@ -148,7 +299,7 @@
 
             <div class="checkbox-group">
                 <label>
-                    <input type="checkbox" id="show-nodes" checked>
+                    <input type="checkbox" id="show-nodes">
                     Nodes
                 </label>
                 <label>
@@ -158,6 +309,10 @@
                 <label>
                     <input type="checkbox" id="show-sprites" checked>
                     Sprites
+                </label>
+                <label>
+                    <input type="checkbox" id="show-events" checked>
+                    Events
                 </label>
                 <label>
                     <input type="checkbox" id="show-grid">
@@ -192,44 +347,120 @@
                     <span id="info-sprites">-</span>
                 </div>
                 <div class="info-item">
-                    <label>Floor Color</label>
-                    <span id="info-floor-color">-</span>
+                    <label>Tile Events</label>
+                    <span id="info-events">-</span>
                 </div>
                 <div class="info-item">
-                    <label>Ceiling Color</label>
-                    <span id="info-ceiling-color">-</span>
+                    <label>ByteCodes</label>
+                    <span id="info-bytecodes">-</span>
                 </div>
                 <div class="info-item">
-                    <label>Spawn Index</label>
+                    <label>Strings</label>
+                    <span id="info-strings">-</span>
+                </div>
+                <div class="info-item">
+                    <label>Spawn</label>
                     <span id="info-spawn">-</span>
                 </div>
             </div>
         </div>
 
-        <div id="canvas-container">
-            <canvas id="canvas" width="1024" height="768"></canvas>
-            <div class="legend">
-                <div class="legend-item">
-                    <div class="legend-color" style="background: #00ff00;"></div>
-                    <span>Nodes</span>
+        <div class="main-layout">
+            <div class="map-panel">
+                <div id="canvas-container">
+                    <canvas id="canvas" width="900" height="700"></canvas>
+                    <div class="legend">
+                        <div class="legend-item">
+                            <div class="legend-color" style="background: #00ff00;"></div>
+                            <span>Nodes</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color" style="background: #ff6600;"></div>
+                            <span>Lines (walls)</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color" style="background: #ff00ff; width: 8px; height: 8px; border-radius: 50%;"></div>
+                            <span>Sprites</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color" style="background: #00ffff; width: 8px; height: 8px;"></div>
+                            <span>Tile Events</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color" style="background: #ffff00; width: 8px; height: 8px; border-radius: 50%;"></div>
+                            <span>Player Spawn</span>
+                        </div>
+                    </div>
                 </div>
-                <div class="legend-item">
-                    <div class="legend-color" style="background: #ff6600;"></div>
-                    <span>Lines (walls)</span>
-                </div>
-                <div class="legend-item">
-                    <div class="legend-color" style="background: #ff00ff; width: 8px; height: 8px; border-radius: 50%;"></div>
-                    <span>Sprites</span>
-                </div>
-                <div class="legend-item">
-                    <div class="legend-color" style="background: #ffff00; width: 8px; height: 8px; border-radius: 50%;"></div>
-                    <span>Player Spawn</span>
+            </div>
+
+            <div class="script-panel" id="script-panel">
+                <h3>
+                    Scripts
+                    <span id="script-count"></span>
+                </h3>
+                <input type="text" class="filter-input" id="script-filter" placeholder="Filter by command or position...">
+                <div class="script-list" id="script-list"></div>
+
+                <div class="strings-panel" id="strings-panel">
+                    <h4>Strings</h4>
+                    <div id="strings-list"></div>
                 </div>
             </div>
         </div>
     </div>
 
     <script>
+        // Event type names and descriptions
+        const EVENT_TYPES = {
+            0: { name: 'EV_NONE', desc: 'No event' },
+            1: { name: 'EV_GOTO', desc: 'Teleport player', format: 'xy_angle' },
+            2: { name: 'EV_CHANGEMAP', desc: 'Change map', format: 'mapid' },
+            3: { name: 'EV_TRIGGER', desc: 'Trigger event', format: 'xy' },
+            4: { name: 'EV_MESSAGE', desc: 'Show HUD message', format: 'string' },
+            5: { name: 'EV_PAIN', desc: 'Damage player', format: 'damage' },
+            6: { name: 'EV_MOVELINE', desc: 'Move line (door)', format: 'line' },
+            7: { name: 'EV_SHOW', desc: 'Show sprite', format: 'sprite_flags' },
+            8: { name: 'EV_DIALOG', desc: 'Show dialog', format: 'string' },
+            9: { name: 'EV_GIVEMAP', desc: 'Reveal automap', format: 'none' },
+            10: { name: 'EV_PASSWORD', desc: 'Password prompt', format: 'pass_string' },
+            11: { name: 'EV_CHANGESTATE', desc: 'Set event state', format: 'xy_state' },
+            12: { name: 'EV_LOCK', desc: 'Lock door', format: 'line' },
+            13: { name: 'EV_UNLOCK', desc: 'Unlock door', format: 'line' },
+            14: { name: 'EV_TOGGLELOCK', desc: 'Toggle lock', format: 'line' },
+            15: { name: 'EV_OPENLINE', desc: 'Open door', format: 'line' },
+            16: { name: 'EV_CLOSELINE', desc: 'Close door', format: 'line' },
+            17: { name: 'EV_MOVELINE2', desc: 'Move line alt', format: 'line' },
+            18: { name: 'EV_HIDE', desc: 'Hide entity', format: 'xy' },
+            19: { name: 'EV_NEXTSTATE', desc: 'Next state', format: 'xy' },
+            20: { name: 'EV_PREVSTATE', desc: 'Prev state', format: 'xy' },
+            21: { name: 'EV_INCSTAT', desc: 'Increase stat', format: 'stat_amount' },
+            22: { name: 'EV_DECSTAT', desc: 'Decrease stat', format: 'stat_amount' },
+            23: { name: 'EV_REQSTAT', desc: 'Require stat', format: 'stat_amount_msg' },
+            24: { name: 'EV_FORCEMESSAGE', desc: 'Force message', format: 'string' },
+            25: { name: 'EV_ANIM', desc: 'Spawn animation', format: 'xy_anim' },
+            26: { name: 'EV_DIALOG_NOBACK', desc: 'Dialog (no back)', format: 'string' },
+            27: { name: 'EV_SAVEGAME', desc: 'Save game', format: 'save' },
+            28: { name: 'EV_ABORTMOVE', desc: 'Cancel movement', format: 'none' },
+            29: { name: 'EV_SCREENSHAKE', desc: 'Screen shake', format: 'shake' },
+            30: { name: 'EV_CHANGEFLOORCOLOR', desc: 'Change floor color', format: 'rgb' },
+            31: { name: 'EV_CHANGECEILCOLOR', desc: 'Change ceiling color', format: 'rgb' },
+            32: { name: 'EV_ENABLEWEAPONS', desc: 'Enable weapons', format: 'bool' },
+            33: { name: 'EV_OPENSTORE', desc: 'Open store', format: 'store' },
+            34: { name: 'EV_CHANGESPRITE', desc: 'Change sprite', format: 'changesprite' },
+            35: { name: 'EV_SPAWNPARTICLES', desc: 'Spawn particles', format: 'particles' },
+            36: { name: 'EV_REFRESHVIEW', desc: 'Refresh view', format: 'none' },
+            37: { name: 'EV_WAIT', desc: 'Wait', format: 'ms' },
+            38: { name: 'EV_ACTIVE_PORTAL', desc: 'Activate portal', format: 'none' },
+            39: { name: 'EV_CHECK_COMPLETED_LEVEL', desc: 'Check level', format: 'level_check' },
+            40: { name: 'EV_NOTE', desc: 'Add note', format: 'string' },
+            41: { name: 'EV_CHECK_KEY', desc: 'Check key', format: 'key' },
+            42: { name: 'EV_PLAYSOUND', desc: 'Play sound', format: 'sound' }
+        };
+
+        const KEY_NAMES = ['Green Key', 'Yellow Key', 'Blue Key', 'Red Key'];
+        const STAT_NAMES = ['Health', 'Armor', 'Strength', 'Accuracy', 'Agility', 'Max Health', 'Max Armor'];
+
         // BSP Parser
         class BSPReader {
             constructor(buffer) {
@@ -245,7 +476,6 @@
                 const low = this.data[this.pos++];
                 const high = this.data[this.pos++];
                 let value = (high << 8) | low;
-                // Convert to signed
                 if (value >= 0x8000) value -= 0x10000;
                 return value;
             }
@@ -261,8 +491,15 @@
                 const b1 = this.data[this.pos++];
                 const b2 = this.data[this.pos++];
                 const b3 = this.data[this.pos++];
-                let value = (b3 << 24) | (b2 << 16) | (b1 << 8) | b0;
-                return value;
+                return (b3 << 24) | (b2 << 16) | (b1 << 8) | b0;
+            }
+
+            readUInt() {
+                const b0 = this.data[this.pos++];
+                const b1 = this.data[this.pos++];
+                const b2 = this.data[this.pos++];
+                const b3 = this.data[this.pos++];
+                return ((b3 << 24) | (b2 << 16) | (b1 << 8) | b0) >>> 0;
             }
 
             readShiftCoord() {
@@ -281,6 +518,15 @@
                 }
                 return str;
             }
+
+            readStringWithLength() {
+                const len = this.readShort();
+                let str = '';
+                for (let i = 0; i < len; i++) {
+                    str += String.fromCharCode(this.data[this.pos++]);
+                }
+                return str;
+            }
         }
 
         class BSPMap {
@@ -289,6 +535,9 @@
                 this.nodes = [];
                 this.lines = [];
                 this.sprites = [];
+                this.tileEvents = [];
+                this.byteCodes = [];
+                this.strings = [];
             }
 
             parse(buffer) {
@@ -297,23 +546,11 @@
                 // Parse Header (33 bytes)
                 this.header = {
                     mapName: reader.readString(16),
-                    floorColor: {
-                        r: reader.readByte(),
-                        g: reader.readByte(),
-                        b: reader.readByte()
-                    },
-                    ceilingColor: {
-                        r: reader.readByte(),
-                        g: reader.readByte(),
-                        b: reader.readByte()
-                    },
+                    floorColor: { r: reader.readByte(), g: reader.readByte(), b: reader.readByte() },
+                    ceilingColor: { r: reader.readByte(), g: reader.readByte(), b: reader.readByte() },
                     floorTex: reader.readByte(),
                     ceilingTex: reader.readByte(),
-                    introColor: {
-                        r: reader.readByte(),
-                        g: reader.readByte(),
-                        b: reader.readByte()
-                    },
+                    introColor: { r: reader.readByte(), g: reader.readByte(), b: reader.readByte() },
                     loadMapID: reader.readByte(),
                     mapSpawnIndex: reader.readShort(),
                     mapSpawnDir: reader.readByte(),
@@ -343,15 +580,14 @@
                 const linesLength = reader.readShort();
                 this.lines = [];
                 for (let i = 0; i < linesLength; i++) {
-                    const line = {
+                    this.lines.push({
                         x1: reader.readShiftCoord(),
                         y1: reader.readShiftCoord(),
                         x2: reader.readShiftCoord(),
                         y2: reader.readShiftCoord(),
                         texture: reader.readShort(),
                         flags: reader.readInt()
-                    };
-                    this.lines.push(line);
+                    });
                 }
 
                 // Parse Sprites
@@ -367,6 +603,57 @@
                     sprite.info = sprite.info_low | (sprite.info_high << 8);
                     sprite.id = sprite.info & 0x1FF;
                     this.sprites.push(sprite);
+                }
+
+                // Parse Tile Events
+                const eventsLength = reader.readShort();
+                this.tileEvents = [];
+                for (let i = 0; i < eventsLength; i++) {
+                    const eventData = reader.readUInt();
+                    const tileIndex = eventData & 0x3FF;
+                    const commandIndex = (eventData & 0x7FC00) >> 10;
+                    const commandCount = (eventData & 0x1F80000) >> 19;
+                    const eventState = (eventData & 0x1E000000) >> 25;
+                    const eventFlags = (eventData & 0xE0000000) >> 29;
+
+                    this.tileEvents.push({
+                        raw: eventData,
+                        tileIndex,
+                        tileX: tileIndex % 32,
+                        tileY: Math.floor(tileIndex / 32),
+                        commandIndex,
+                        commandCount,
+                        eventState,
+                        eventFlags,
+                        commands: [] // Will be filled after bytecode parsing
+                    });
+                }
+
+                // Parse ByteCodes
+                const byteCodesLength = reader.readShort();
+                this.byteCodes = [];
+                for (let i = 0; i < byteCodesLength; i++) {
+                    const id = reader.readByte();
+                    const arg1 = reader.readInt();
+                    const arg2 = reader.readInt();
+                    this.byteCodes.push({ id, arg1, arg2 });
+                }
+
+                // Parse Strings
+                const stringsLength = reader.readShort();
+                this.strings = [];
+                for (let i = 0; i < stringsLength; i++) {
+                    this.strings.push(reader.readStringWithLength());
+                }
+
+                // Link bytecodes to tile events
+                for (const event of this.tileEvents) {
+                    for (let i = 0; i < event.commandCount; i++) {
+                        const cmdIdx = event.commandIndex + i;
+                        if (cmdIdx < this.byteCodes.length) {
+                            event.commands.push(this.byteCodes[cmdIdx]);
+                        }
+                    }
                 }
 
                 return this;
@@ -397,7 +684,109 @@
                     maxY = Math.max(maxY, sprite.y);
                 }
 
+                // Include tile events
+                for (const event of this.tileEvents) {
+                    const x = event.tileX * 64 + 32;
+                    const y = event.tileY * 64 + 32;
+                    minX = Math.min(minX, x);
+                    minY = Math.min(minY, y);
+                    maxX = Math.max(maxX, x);
+                    maxY = Math.max(maxY, y);
+                }
+
                 return { minX, minY, maxX, maxY };
+            }
+
+            formatArg1(cmd) {
+                const evType = EVENT_TYPES[cmd.id] || { name: `UNKNOWN_${cmd.id}`, format: 'raw' };
+                const arg1 = cmd.arg1;
+
+                switch (evType.format) {
+                    case 'xy':
+                        return `(${arg1 & 0xFF}, ${(arg1 >> 8) & 0xFF})`;
+                    case 'xy_angle':
+                        return `(${arg1 & 0xFF}, ${(arg1 >> 8) & 0xFF}) angle=${(arg1 >> 16) & 0xFF}`;
+                    case 'xy_state':
+                        return `(${arg1 & 0xFF}, ${(arg1 >> 8) & 0xFF}) state=${(arg1 >> 16) & 0xFF}`;
+                    case 'xy_anim':
+                        return `(${arg1 & 0xFF}, ${(arg1 >> 8) & 0xFF}) anim=${(arg1 >> 16) & 0xFFFF}`;
+                    case 'string':
+                        return `str[${arg1}]`;
+                    case 'line':
+                        return `line[${arg1}]`;
+                    case 'mapid':
+                        return `map=${arg1}`;
+                    case 'damage':
+                        return `dmg=${arg1}`;
+                    case 'sprite_flags':
+                        return `sprite[${arg1 & 0xFFFF}] flags=${(arg1 >> 16) & 0xFFFF}`;
+                    case 'pass_string':
+                        return `pass=${arg1 & 0xFF} str[${(arg1 >> 8) & 0xFFFF}]`;
+                    case 'stat_amount':
+                        const stat = arg1 & 0xFF;
+                        const amount = (arg1 >> 8) & 0xFF;
+                        return `${STAT_NAMES[stat] || `stat${stat}`} +${amount}`;
+                    case 'stat_amount_msg':
+                        const st = arg1 & 0xFF;
+                        const amt = (arg1 >> 8) & 0xFF;
+                        const msgId = (arg1 >> 16) & 0xFFFF;
+                        return `${STAT_NAMES[st] || `stat${st}`} >=${amt} msg[${msgId}]`;
+                    case 'save':
+                        return `str[${arg1 & 0xFF}] (${(arg1 >> 8) & 0xFF},${(arg1 >> 16) & 0xFF}) a=${(arg1 >> 24) & 0xFF}`;
+                    case 'shake':
+                        return `dur=${arg1 & 0xFFF} int=${(arg1 >> 12) & 0xFFF} spd=${(arg1 >> 24) & 0xFF}`;
+                    case 'rgb':
+                        return `RGB(${arg1 & 0xFF}, ${(arg1 >> 8) & 0xFF}, ${(arg1 >> 16) & 0xFF})`;
+                    case 'bool':
+                        return arg1 ? 'true' : 'false';
+                    case 'ms':
+                        return `${arg1}ms`;
+                    case 'sound':
+                        return `sound[${arg1}]`;
+                    case 'key':
+                        return KEY_NAMES[arg1] || `key${arg1}`;
+                    case 'changesprite':
+                        const sx = arg1 & 0x1F;
+                        const sy = (arg1 >> 5) & 0x1F;
+                        const sflags = (arg1 >> 10) & 0x7;
+                        const sprId = (arg1 >> 13) & 0x1FF;
+                        return `(${sx},${sy}) sprite=${sprId} flags=${sflags}`;
+                    case 'particles':
+                        const r = arg1 & 0xFF;
+                        const g = (arg1 >> 8) & 0xFF;
+                        const b = (arg1 >> 16) & 0xFF;
+                        const ptype = (arg1 >> 24) & 0x1F;
+                        const pcount = (arg1 >> 29) & 0x7;
+                        return `RGB(${r},${g},${b}) type=${ptype} count=${pcount}`;
+                    case 'level_check':
+                        return `str[${arg1 & 0xFFFF}] range=${(arg1 >> 16) & 0xFFFF}`;
+                    case 'none':
+                        return '';
+                    default:
+                        return arg1 !== 0 ? `0x${arg1.toString(16)}` : '';
+                }
+            }
+
+            formatArg2Conditions(arg2) {
+                const conditions = [];
+                const triggerFlags = arg2 & 0x1FF;
+                const modifyWorld = (arg2 & 0x200) !== 0;
+                const keyFlags = (arg2 >> 12) & 0xF;
+                const stateFlags = (arg2 >> 16) & 0x1FF;
+
+                if (modifyWorld) conditions.push('ONE-TIME');
+                if (keyFlags) {
+                    const keys = [];
+                    if (keyFlags & 1) keys.push('Green');
+                    if (keyFlags & 2) keys.push('Yellow');
+                    if (keyFlags & 4) keys.push('Blue');
+                    if (keyFlags & 8) keys.push('Red');
+                    conditions.push(`Req: ${keys.join('+')} Key`);
+                }
+                if (stateFlags) conditions.push(`State: ${stateFlags}`);
+                if (triggerFlags) conditions.push(`Trigger: 0x${triggerFlags.toString(16)}`);
+
+                return conditions.join(', ');
             }
         }
 
@@ -410,10 +799,12 @@
                 this.zoom = 1;
                 this.offsetX = 0;
                 this.offsetY = 0;
-                this.showNodes = true;
+                this.showNodes = false;
                 this.showLines = true;
                 this.showSprites = true;
+                this.showEvents = true;
                 this.showGrid = false;
+                this.selectedEvent = null;
 
                 this.setupPanning();
             }
@@ -452,10 +843,38 @@
                     this.zoom = Math.max(0.1, Math.min(10, this.zoom));
                     this.render();
                 });
+
+                // Click to select event
+                this.canvas.addEventListener('click', (e) => {
+                    if (!this.map) return;
+                    const rect = this.canvas.getBoundingClientRect();
+                    const clickX = e.clientX - rect.left;
+                    const clickY = e.clientY - rect.top;
+
+                    // Find closest event
+                    let closest = null;
+                    let closestDist = 20; // Max click distance
+
+                    for (const event of this.map.tileEvents) {
+                        const x = event.tileX * 64 + 32;
+                        const y = event.tileY * 64 + 32;
+                        const p = this.worldToScreen(x, y);
+                        const dist = Math.sqrt((p.x - clickX) ** 2 + (p.y - clickY) ** 2);
+                        if (dist < closestDist) {
+                            closest = event;
+                            closestDist = dist;
+                        }
+                    }
+
+                    this.selectedEvent = closest;
+                    this.render();
+                    updateScriptSelection(closest);
+                });
             }
 
             setMap(map) {
                 this.map = map;
+                this.selectedEvent = null;
                 this.fitToView();
             }
 
@@ -484,6 +903,14 @@
                 };
             }
 
+            centerOnTile(tileX, tileY) {
+                const x = tileX * 64 + 32;
+                const y = tileY * 64 + 32;
+                this.offsetX = this.canvas.width / 2 - x * this.zoom;
+                this.offsetY = this.canvas.height / 2 - y * this.zoom;
+                this.render();
+            }
+
             render() {
                 const ctx = this.ctx;
                 ctx.fillStyle = '#000';
@@ -491,85 +918,12 @@
 
                 if (!this.map) return;
 
-                // Draw grid
-                if (this.showGrid) {
-                    this.drawGrid();
-                }
-
-                // Draw nodes
-                if (this.showNodes) {
-                    ctx.strokeStyle = '#00ff00';
-                    ctx.lineWidth = 1;
-                    ctx.globalAlpha = 0.5;
-
-                    for (const node of this.map.nodes) {
-                        const p1 = this.worldToScreen(node.x1, node.y1);
-                        const p2 = this.worldToScreen(node.x2, node.y2);
-
-                        ctx.beginPath();
-                        ctx.moveTo(p1.x, p1.y);
-                        ctx.lineTo(p2.x, p2.y);
-                        ctx.stroke();
-                    }
-                    ctx.globalAlpha = 1;
-                }
-
-                // Draw lines (walls)
-                if (this.showLines) {
-                    ctx.strokeStyle = '#ff6600';
-                    ctx.lineWidth = 2;
-
-                    for (const line of this.map.lines) {
-                        const p1 = this.worldToScreen(line.x1, line.y1);
-                        const p2 = this.worldToScreen(line.x2, line.y2);
-
-                        ctx.beginPath();
-                        ctx.moveTo(p1.x, p1.y);
-                        ctx.lineTo(p2.x, p2.y);
-                        ctx.stroke();
-                    }
-                }
-
-                // Draw sprites
-                if (this.showSprites) {
-                    for (const sprite of this.map.sprites) {
-                        const p = this.worldToScreen(sprite.x, sprite.y);
-
-                        ctx.fillStyle = '#ff00ff';
-                        ctx.beginPath();
-                        ctx.arc(p.x, p.y, 4, 0, Math.PI * 2);
-                        ctx.fill();
-
-                        // Draw sprite ID
-                        ctx.fillStyle = '#fff';
-                        ctx.font = '10px monospace';
-                        ctx.fillText(sprite.id.toString(), p.x + 6, p.y + 3);
-                    }
-                }
-
-                // Draw player spawn
-                if (this.map.header) {
-                    const spawnIndex = this.map.header.mapSpawnIndex;
-                    const spawnX = (spawnIndex % 32) * 64 + 32;
-                    const spawnY = Math.floor(spawnIndex / 32) * 64 + 32;
-                    const p = this.worldToScreen(spawnX, spawnY);
-
-                    ctx.fillStyle = '#ffff00';
-                    ctx.beginPath();
-                    ctx.arc(p.x, p.y, 6, 0, Math.PI * 2);
-                    ctx.fill();
-
-                    // Draw direction arrow
-                    const dir = this.map.header.mapSpawnDir;
-                    const angle = (dir / 256) * Math.PI * 2;
-                    const arrowLen = 15;
-                    ctx.strokeStyle = '#ffff00';
-                    ctx.lineWidth = 2;
-                    ctx.beginPath();
-                    ctx.moveTo(p.x, p.y);
-                    ctx.lineTo(p.x + Math.cos(angle) * arrowLen, p.y - Math.sin(angle) * arrowLen);
-                    ctx.stroke();
-                }
+                if (this.showGrid) this.drawGrid();
+                if (this.showNodes) this.drawNodes();
+                if (this.showLines) this.drawLines();
+                if (this.showEvents) this.drawEvents();
+                if (this.showSprites) this.drawSprites();
+                this.drawSpawn();
             }
 
             drawGrid() {
@@ -577,7 +931,7 @@
                 ctx.strokeStyle = '#222';
                 ctx.lineWidth = 1;
 
-                const gridSize = 64; // Tile size
+                const gridSize = 64;
                 const bounds = this.map.getBounds();
 
                 const startX = Math.floor(bounds.minX / gridSize) * gridSize;
@@ -603,15 +957,122 @@
                     ctx.stroke();
                 }
             }
+
+            drawNodes() {
+                const ctx = this.ctx;
+                ctx.strokeStyle = '#00ff00';
+                ctx.lineWidth = 1;
+                ctx.globalAlpha = 0.5;
+
+                for (const node of this.map.nodes) {
+                    const p1 = this.worldToScreen(node.x1, node.y1);
+                    const p2 = this.worldToScreen(node.x2, node.y2);
+                    ctx.beginPath();
+                    ctx.moveTo(p1.x, p1.y);
+                    ctx.lineTo(p2.x, p2.y);
+                    ctx.stroke();
+                }
+                ctx.globalAlpha = 1;
+            }
+
+            drawLines() {
+                const ctx = this.ctx;
+                ctx.strokeStyle = '#ff6600';
+                ctx.lineWidth = 2;
+
+                for (const line of this.map.lines) {
+                    const p1 = this.worldToScreen(line.x1, line.y1);
+                    const p2 = this.worldToScreen(line.x2, line.y2);
+                    ctx.beginPath();
+                    ctx.moveTo(p1.x, p1.y);
+                    ctx.lineTo(p2.x, p2.y);
+                    ctx.stroke();
+                }
+            }
+
+            drawSprites() {
+                const ctx = this.ctx;
+
+                for (const sprite of this.map.sprites) {
+                    const p = this.worldToScreen(sprite.x, sprite.y);
+                    ctx.fillStyle = '#ff00ff';
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, 4, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    ctx.fillStyle = '#fff';
+                    ctx.font = '10px monospace';
+                    ctx.fillText(sprite.id.toString(), p.x + 6, p.y + 3);
+                }
+            }
+
+            drawEvents() {
+                const ctx = this.ctx;
+
+                for (const event of this.map.tileEvents) {
+                    const x = event.tileX * 64 + 32;
+                    const y = event.tileY * 64 + 32;
+                    const p = this.worldToScreen(x, y);
+
+                    const isSelected = this.selectedEvent === event;
+
+                    // Draw tile highlight
+                    const tileP1 = this.worldToScreen(event.tileX * 64, event.tileY * 64);
+                    const tileSize = 64 * this.zoom;
+
+                    ctx.fillStyle = isSelected ? 'rgba(0, 255, 255, 0.3)' : 'rgba(0, 255, 255, 0.1)';
+                    ctx.fillRect(tileP1.x, tileP1.y, tileSize, tileSize);
+
+                    // Draw event marker
+                    ctx.fillStyle = isSelected ? '#ffffff' : '#00ffff';
+                    ctx.fillRect(p.x - 4, p.y - 4, 8, 8);
+
+                    if (isSelected) {
+                        ctx.strokeStyle = '#ffffff';
+                        ctx.lineWidth = 2;
+                        ctx.strokeRect(tileP1.x, tileP1.y, tileSize, tileSize);
+                    }
+                }
+            }
+
+            drawSpawn() {
+                if (!this.map.header) return;
+
+                const ctx = this.ctx;
+                const spawnIndex = this.map.header.mapSpawnIndex;
+                const spawnX = (spawnIndex % 32) * 64 + 32;
+                const spawnY = Math.floor(spawnIndex / 32) * 64 + 32;
+                const p = this.worldToScreen(spawnX, spawnY);
+
+                ctx.fillStyle = '#ffff00';
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, 6, 0, Math.PI * 2);
+                ctx.fill();
+
+                const dir = this.map.header.mapSpawnDir;
+                const angle = (dir / 256) * Math.PI * 2;
+                const arrowLen = 15;
+                ctx.strokeStyle = '#ffff00';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(p.x, p.y);
+                ctx.lineTo(p.x + Math.cos(angle) * arrowLen, p.y - Math.sin(angle) * arrowLen);
+                ctx.stroke();
+            }
         }
 
-        // UI Setup
+        // UI
         const canvas = document.getElementById('canvas');
         const renderer = new MapRenderer(canvas);
+        let currentMap = null;
 
         const dropZone = document.getElementById('drop-zone');
         const fileInput = document.getElementById('file-input');
         const infoPanel = document.getElementById('info-panel');
+        const scriptPanel = document.getElementById('script-panel');
+        const scriptList = document.getElementById('script-list');
+        const stringsList = document.getElementById('strings-list');
+        const scriptFilter = document.getElementById('script-filter');
 
         function loadFile(file) {
             const reader = new FileReader();
@@ -619,11 +1080,15 @@
                 try {
                     const map = new BSPMap();
                     map.parse(e.target.result);
+                    currentMap = map;
 
                     renderer.setMap(map);
                     updateInfo(map);
+                    updateScriptList(map);
+                    updateStringsList(map);
 
                     infoPanel.classList.add('visible');
+                    scriptPanel.classList.add('visible');
                     canvas.style.cursor = 'grab';
                 } catch (err) {
                     alert('Error parsing BSP file: ' + err.message);
@@ -638,17 +1103,109 @@
             document.getElementById('info-nodes').textContent = map.nodes.length;
             document.getElementById('info-lines').textContent = map.lines.length;
             document.getElementById('info-sprites').textContent = map.sprites.length;
-
-            const fc = map.header.floorColor;
-            document.getElementById('info-floor-color').innerHTML =
-                `<span style="background: rgb(${fc.b},${fc.g},${fc.r}); padding: 2px 8px; border-radius: 3px;">RGB(${fc.r},${fc.g},${fc.b})</span>`;
-
-            const cc = map.header.ceilingColor;
-            document.getElementById('info-ceiling-color').innerHTML =
-                `<span style="background: rgb(${cc.b},${cc.g},${cc.r}); padding: 2px 8px; border-radius: 3px;">RGB(${cc.r},${cc.g},${cc.b})</span>`;
-
+            document.getElementById('info-events').textContent = map.tileEvents.length;
+            document.getElementById('info-bytecodes').textContent = map.byteCodes.length;
+            document.getElementById('info-strings').textContent = map.strings.length;
             document.getElementById('info-spawn').textContent =
-                `${map.header.mapSpawnIndex} (dir: ${map.header.mapSpawnDir})`;
+                `(${map.header.mapSpawnIndex % 32}, ${Math.floor(map.header.mapSpawnIndex / 32)})`;
+        }
+
+        function updateScriptList(map, filter = '') {
+            scriptList.innerHTML = '';
+            document.getElementById('script-count').textContent = `${map.tileEvents.length} events`;
+
+            const filterLower = filter.toLowerCase();
+
+            for (const event of map.tileEvents) {
+                // Build searchable text
+                let searchText = `${event.tileX},${event.tileY} `;
+                for (const cmd of event.commands) {
+                    const evType = EVENT_TYPES[cmd.id] || { name: `UNKNOWN_${cmd.id}` };
+                    searchText += evType.name + ' ';
+                }
+
+                if (filter && !searchText.toLowerCase().includes(filterLower)) {
+                    continue;
+                }
+
+                const div = document.createElement('div');
+                div.className = 'tile-event';
+                div.dataset.tileX = event.tileX;
+                div.dataset.tileY = event.tileY;
+
+                let html = `
+                    <div class="tile-event-header">
+                        <span class="tile-pos">(${event.tileX}, ${event.tileY})</span>
+                        <span class="tile-index">idx: ${event.tileIndex}</span>
+                    </div>
+                    <div class="command-list">
+                `;
+
+                for (const cmd of event.commands) {
+                    const evType = EVENT_TYPES[cmd.id] || { name: `UNKNOWN_${cmd.id}`, desc: 'Unknown' };
+                    const argStr = map.formatArg1(cmd);
+                    const conditions = map.formatArg2Conditions(cmd.arg2);
+
+                    // Determine CSS class for color coding
+                    let cmdClass = '';
+                    if ([1].includes(cmd.id)) cmdClass = 'cmd-goto';
+                    if ([2].includes(cmd.id)) cmdClass = 'cmd-changemap';
+                    if ([4, 8, 24, 26].includes(cmd.id)) cmdClass = 'cmd-message';
+                    if ([6, 15, 16, 17].includes(cmd.id)) cmdClass = 'cmd-moveline';
+                    if ([7, 18].includes(cmd.id)) cmdClass = 'cmd-show';
+                    if ([42].includes(cmd.id)) cmdClass = 'cmd-sound';
+                    if ([11, 19, 20].includes(cmd.id)) cmdClass = 'cmd-state';
+
+                    html += `<div class="command ${cmdClass}">`;
+                    html += `<span class="cmd-name">${evType.name}</span>`;
+                    if (argStr) html += `<span class="cmd-args">${argStr}</span>`;
+
+                    // Show string preview for message/dialog events
+                    if ([4, 8, 24, 26, 40].includes(cmd.id) && cmd.arg1 < map.strings.length) {
+                        const str = map.strings[cmd.arg1];
+                        html += `<span class="string-preview">"${str.replace(/\|/g, ' ')}"</span>`;
+                    }
+
+                    if (conditions) {
+                        html += `<span class="cmd-condition">${conditions}</span>`;
+                    }
+                    html += '</div>';
+                }
+
+                html += '</div>';
+                div.innerHTML = html;
+
+                div.addEventListener('click', () => {
+                    document.querySelectorAll('.tile-event').forEach(el => el.classList.remove('selected'));
+                    div.classList.add('selected');
+                    renderer.selectedEvent = event;
+                    renderer.centerOnTile(event.tileX, event.tileY);
+                });
+
+                scriptList.appendChild(div);
+            }
+        }
+
+        function updateScriptSelection(event) {
+            document.querySelectorAll('.tile-event').forEach(el => {
+                if (event && el.dataset.tileX == event.tileX && el.dataset.tileY == event.tileY) {
+                    el.classList.add('selected');
+                    el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                } else {
+                    el.classList.remove('selected');
+                }
+            });
+        }
+
+        function updateStringsList(map) {
+            stringsList.innerHTML = '';
+
+            for (let i = 0; i < map.strings.length; i++) {
+                const div = document.createElement('div');
+                div.className = 'string-item';
+                div.innerHTML = `<span class="str-index">[${i}]</span><span class="str-text">${map.strings[i].replace(/\|/g, '|')}</span>`;
+                stringsList.appendChild(div);
+            }
         }
 
         // Event listeners
@@ -677,6 +1234,12 @@
             }
         });
 
+        scriptFilter.addEventListener('input', (e) => {
+            if (currentMap) {
+                updateScriptList(currentMap, e.target.value);
+            }
+        });
+
         // Checkboxes
         document.getElementById('show-nodes').addEventListener('change', (e) => {
             renderer.showNodes = e.target.checked;
@@ -690,6 +1253,11 @@
 
         document.getElementById('show-sprites').addEventListener('change', (e) => {
             renderer.showSprites = e.target.checked;
+            renderer.render();
+        });
+
+        document.getElementById('show-events').addEventListener('change', (e) => {
+            renderer.showEvents = e.target.checked;
             renderer.render();
         });
 
