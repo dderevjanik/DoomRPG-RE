@@ -199,6 +199,176 @@ info = info_low | (info_high << 16)
 - Sprites 136, 137, 144: `renderMode = 7`
 - All other sprites: `renderMode = 0`
 
+#### Sprite Type Definitions
+
+The following table lists all sprite types defined in `entities.db`. The Sprite ID corresponds to the `tileIndex` field in entity definitions.
+
+| Sprite ID | Name | Entity Type | Description |
+|-----------|------|-------------|-------------|
+| 1 | Axe | Weapon | Melee weapon |
+| 2 | Fire Extinguisher | Weapon | Fire extinguisher weapon |
+| 3 | Shotgun | Weapon | Shotgun |
+| 4 | Super Shotgun | Weapon | Double-barrel shotgun |
+| 5 | Assault Rifle | Weapon | Automatic rifle |
+| 6 | Chaingun | Weapon | Rapid-fire chaingun |
+| 7 | Plasma Gun | Weapon | Plasma rifle |
+| 8 | BFG | Weapon | BFG 9000 |
+| 9 | Rocket Launcher | Weapon | Rocket launcher |
+| 10 | Fire Wall | Weapon | Fire wall attack |
+| 11 | Soul Cube | Weapon | Soul Cube |
+| 12 | Dog Collar | Weapon | Dog collar item |
+| 17 | Zombie Private | Monster | Basic zombie enemy |
+| 18 | Zombie Lieutenant | Monster | Stronger zombie variant |
+| 19 | Zombie Captain | Monster | Elite zombie variant |
+| 20 | Zombie Commando | Monster | Commando zombie |
+| 21 | Zombie Commando 2 | Monster | Commando zombie variant |
+| 22 | Zombie Sergant | Monster | Sergeant zombie |
+| 23 | Imp | Monster | Standard imp demon |
+| 24 | Imp Leader | Monster | Stronger imp variant |
+| 25 | Imp Lord | Monster | Elite imp |
+| 26 | Phantasm | Monster | Ghost enemy |
+| 27 | Beholder | Monster | Floating eye demon |
+| 28 | Rahovart | Monster | Demon variant |
+| 29 | Infernis | Monster | Fire demon |
+| 30 | Ogre | Monster | Large demon |
+| 31 | Wretched | Monster | Twisted demon |
+| 32 | Bull Demon | Monster | Charging demon (Pinky) |
+| 33 | Belphegor | Monster | Demon lord |
+| 34 | Assassin | Monster | Stealthy demon |
+| 35 | Lost Soul | Monster | Flying skull |
+| 36 | Nightmare | Monster | Nightmare creature |
+| 37 | Revenant | Monster | Skeleton demon |
+| 38 | Ghoul | Monster | Undead creature |
+| 39 | Malwrath | Monster | Demon enemy |
+| 40 | Hellhound | Monster | Hell dog |
+| 41 | Mancubus | Monster | Fat demon |
+| 42 | Druj | Monster | Demon variant |
+| 43 | Behemoth | Monster | Large demon |
+| 44 | Cacodemon | Monster | Floating demon |
+| 45 | Watcher | Monster | Observer demon |
+| 46 | Pinkinator | Monster | Pinky variant |
+| 47 | Archvile | Monster | Fire demon |
+| 48 | Infernotaur | Monster | Fire bull demon |
+| 49 | Baron | Monster | Baron of Hell |
+| 50 | Cyberdemon | Monster | Cyber demon boss |
+| 51 | Pain Elemental | Monster | Soul spawner |
+| 52 | Kronos | Monster | Boss demon |
+| 53 | Guardian | Monster | Guardian demon |
+| 54 | Spider Mastermind | Monster | Spider boss |
+| 65 | Red Key | Key | Red keycard |
+| 66 | Blue Key | Key | Blue keycard |
+| 67 | Green Key | Key | Green keycard |
+| 68 | Yellow Key | Key | Yellow keycard |
+| 69 | Red Axe Key | Key | Red axe key |
+| 70 | Blue Axe Key | Key | Blue axe key |
+| 71 | Green Axe Key | Key | Green axe key |
+| 72 | Yellow Axe Key | Key | Yellow axe key |
+| 73 | ID Card | Key | Security ID card |
+| 81 | Halon Canister | Ammo | Fire extinguisher ammo |
+| 82 | Bullets Small | Ammo | Small bullet pack |
+| 83 | Bullets Large | Ammo | Large bullet pack |
+| 84 | Shells Small | Ammo | Small shell box |
+| 85 | Shells Large | Ammo | Large shell box |
+| 86 | Rockets Small | Ammo | Small rocket pack |
+| 87 | Rockets Large | Ammo | Large rocket pack |
+| 88 | Cells Small | Ammo | Small cell pack |
+| 89 | Cells Large | Ammo | Large cell pack |
+| 90 | BFG Cells | Ammo | BFG cell ammo |
+| 91 | Armor Bonus | Pickup | Small armor bonus |
+| 92 | Armor Shard | Pickup | Armor shard |
+| 93 | Security Armor | Pickup | Security armor vest |
+| 94 | Combat Armor | Pickup | Combat armor |
+| 95 | Berserker | Pickup | Berserk powerup |
+| 96 | Medkit 10 | Pickup | Small medkit (10 HP) |
+| 97 | Medkit 25 | Pickup | Medium medkit (25 HP) |
+| 98 | Medkit 100 | Pickup | Large medkit (100 HP) |
+| 99 | Soulsphere | Pickup | Soul sphere (+100 HP) |
+| 100 | Credits | Pickup | Credit pickup |
+| 101 | Dog Food | Pickup | Dog food item |
+| 102 | Dog Toy | Pickup | Dog toy item |
+| 128 | Fire A | Decoration | Fire effect A |
+| 129 | Fire B | Decoration | Fire effect B |
+| 130 | Fire Pit | Decoration | Fire pit |
+| 131 | Red Candle | Decoration | Red candle |
+| 132 | Green Candle | Decoration | Green candle |
+| 133 | Blue Candle | Decoration | Blue candle |
+| 134 | Blue Torch | Decoration | Blue wall torch |
+| 135 | Red Torch | Decoration | Red wall torch |
+| 136 | Light 1 | Light | Light source (renderMode=7) |
+| 137 | Light 2 | Light | Light source (renderMode=7) |
+| 138 | Barrel | Decoration | Explosive barrel |
+| 139 | Toxic Barrel | Decoration | Toxic waste barrel |
+| 140 | Gore Corpse | Decoration | Gore decoration |
+| 141 | Bones | Decoration | Skeleton remains |
+| 142 | Table | Decoration | Table furniture |
+| 143 | Chair | Decoration | Chair furniture |
+| 144 | Light 3 | Light | Light source (renderMode=7) |
+| 145 | Scientist 1 | NPC | Female scientist |
+| 146 | Scientist 2 | NPC | Male scientist |
+| 147 | Marine 1 | NPC | Marine NPC |
+| 148 | Marine 2 | NPC | Marine NPC variant |
+| 149 | Civilian 1 | NPC | Female civilian |
+| 150 | Civilian 2 | NPC | Male civilian |
+| 151 | Dr. Jensen | NPC | Dr. Jensen NPC |
+| 152 | Dr. Guerard | NPC | Dr. Guerard NPC |
+| 153 | Crate Small | Decoration | Small crate |
+| 154 | Crate Large | Decoration | Large crate |
+| 155 | Box | Decoration | Box prop |
+| 156 | Flower | Decoration | Flower pot |
+| 157 | Trash | Decoration | Trash pile |
+| 158 | Bucket | Decoration | Bucket |
+| 159 | Vent A | Decoration | Vent grate A |
+| 160 | Vent B | Decoration | Vent grate B |
+| 161 | Screen | Decoration | Computer screen |
+| 162 | Terminal | Decoration | Computer terminal |
+| 305 | Door 1 | Door | Standard door |
+| 306 | Door 2 | Door | Door variant |
+| 307 | Door Locked | Door | Locked door |
+| 308 | Door Red | Door | Red key door |
+| 309 | Door Blue | Door | Blue key door |
+| 310 | Door Yellow | Door | Yellow key door |
+| 311 | Door Green | Door | Green key door |
+| 312 | Secret Door | Door | Hidden secret door |
+| 313 | Exit Door | Door | Level exit door |
+| 314 | Elevator Door | Door | Elevator door |
+| 315 | Airlock | Door | Airlock door |
+| 338 | Portal | Special | Teleporter portal |
+| 339 | Save Station | Special | Save game station |
+| 340 | Heal Station | Special | Health station |
+| 341 | Armor Station | Special | Armor station |
+| 342 | Dog | Special | Hellhound pet/NPC |
+| 343 | Computer | Special | Interactive computer |
+| 344 | Item Vendor | Special | Item vending machine |
+| 345 | Weapon Vendor | Special | Weapon vending machine |
+| 346 | Upgrade Station | Special | Upgrade station |
+| 347 | Teleporter Pad | Special | Teleporter destination |
+| 348 | Exit Sign | Special | Exit marker |
+| 349 | Vent Exit | Special | Ventilation exit |
+| 350 | Corpse Marine | Decoration | Dead marine |
+| 351 | Corpse Scientist | Decoration | Dead scientist |
+| 352 | Corpse Civilian | Decoration | Dead civilian |
+| 353 | Blood Pool | Decoration | Blood splatter |
+| 354 | Gibs | Decoration | Gibbed remains |
+| 355 | Hanging Body | Decoration | Hanging corpse |
+| 356 | Impaled Body | Decoration | Impaled corpse |
+| 357 | Sparks | Effect | Spark effect |
+| 358 | Steam | Effect | Steam vent |
+| 359 | Electricity | Effect | Electric sparks |
+| 360 | Smoke | Effect | Smoke effect |
+
+**Entity Types:**
+- Weapon (5): Collectible weapons
+- Monster (1): Enemy entities
+- Key (4): Key items for locked doors
+- Ammo (6): Ammunition pickups
+- Pickup (7): Health, armor, and other items
+- Decoration (8): Non-interactive props
+- NPC (2): Friendly characters
+- Door (3): Door entities
+- Light: Special lighting sprites
+- Special: Interactive objects
+- Effect: Visual effect sprites
+
 ---
 
 ### 5. Tile Events Section

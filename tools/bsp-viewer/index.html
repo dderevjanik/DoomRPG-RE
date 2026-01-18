@@ -318,6 +318,14 @@
                     <input type="checkbox" id="show-grid">
                     Grid
                 </label>
+                <label>
+                    <input type="checkbox" id="show-blockmap">
+                    BlockMap
+                </label>
+                <label>
+                    <input type="checkbox" id="show-rulers" checked>
+                    Rulers
+                </label>
             </div>
 
             <div class="zoom-controls">
@@ -379,8 +387,28 @@
                             <span>Lines (walls)</span>
                         </div>
                         <div class="legend-item">
-                            <div class="legend-color" style="background: #ff00ff; width: 8px; height: 8px; border-radius: 50%;"></div>
-                            <span>Sprites</span>
+                            <div class="legend-color" style="background: #ff3333; width: 8px; height: 8px; border-radius: 50%;"></div>
+                            <span>Monsters</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color" style="background: #ff6666; width: 8px; height: 8px; border-radius: 50%;"></div>
+                            <span>Weapons</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color" style="background: #66ff66; width: 8px; height: 8px; border-radius: 50%;"></div>
+                            <span>Ammo</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color" style="background: #66ffff; width: 8px; height: 8px; border-radius: 50%;"></div>
+                            <span>Pickups</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color" style="background: #cc99ff; width: 8px; height: 8px; border-radius: 50%;"></div>
+                            <span>Decorations/NPCs</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color" style="background: #6699ff; width: 8px; height: 8px; border-radius: 50%;"></div>
+                            <span>Doors</span>
                         </div>
                         <div class="legend-item">
                             <div class="legend-color" style="background: #00ffff; width: 8px; height: 8px;"></div>
@@ -389,6 +417,14 @@
                         <div class="legend-item">
                             <div class="legend-color" style="background: #ffff00; width: 8px; height: 8px; border-radius: 50%;"></div>
                             <span>Player Spawn</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color" style="background: rgba(255, 0, 0, 0.3); width: 12px; height: 12px;"></div>
+                            <span>Blocked Tile</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color" style="background: rgba(255, 255, 0, 0.3); width: 12px; height: 12px;"></div>
+                            <span>Special Tile</span>
                         </div>
                     </div>
                 </div>
@@ -460,6 +496,172 @@
 
         const KEY_NAMES = ['Green Key', 'Yellow Key', 'Blue Key', 'Red Key'];
         const STAT_NAMES = ['Health', 'Armor', 'Strength', 'Accuracy', 'Agility', 'Max Health', 'Max Armor'];
+
+        // Sprite names from entities.db (tileIndex -> name mapping)
+        const SPRITE_NAMES = {
+            // Weapons (1-12)
+            1: 'Axe',
+            2: 'Fire Extinguisher',
+            3: 'Shotgun',
+            4: 'Super Shotgun',
+            5: 'Assault Rifle',
+            6: 'Chaingun',
+            7: 'Plasma Gun',
+            8: 'BFG',
+            9: 'Rocket Launcher',
+            10: 'Fire Wall',
+            11: 'Soul Cube',
+            12: 'Dog Collar',
+            // Monsters (17-54)
+            17: 'Zombie Private',
+            18: 'Zombie Lieutenant',
+            19: 'Zombie Captain',
+            20: 'Zombie Commando',
+            21: 'Zombie Commando 2',
+            22: 'Zombie Sergant',
+            23: 'Imp',
+            24: 'Imp Leader',
+            25: 'Imp Lord',
+            26: 'Phantasm',
+            27: 'Beholder',
+            28: 'Rahovart',
+            29: 'Infernis',
+            30: 'Ogre',
+            31: 'Wretched',
+            32: 'Bull Demon',
+            33: 'Belphegor',
+            34: 'Assassin',
+            35: 'Lost Soul',
+            36: 'Nightmare',
+            37: 'Revenant',
+            38: 'Ghoul',
+            39: 'Malwrath',
+            40: 'Hellhound',
+            41: 'Mancubus',
+            42: 'Druj',
+            43: 'Behemoth',
+            44: 'Cacodemon',
+            45: 'Watcher',
+            46: 'Pinkinator',
+            47: 'Archvile',
+            48: 'Infernotaur',
+            49: 'Baron',
+            50: 'Cyberdemon',
+            51: 'Pain Elemental',
+            52: 'Kronos',
+            53: 'Guardian',
+            54: 'Spider Mastermind',
+            // Keys (65-73)
+            65: 'Red Key',
+            66: 'Blue Key',
+            67: 'Green Key',
+            68: 'Yellow Key',
+            69: 'Red Axe Key',
+            70: 'Blue Axe Key',
+            71: 'Green Axe Key',
+            72: 'Yellow Axe Key',
+            73: 'ID Card',
+            // Ammo (81-90)
+            81: 'Halon Canister',
+            82: 'Bullets Small',
+            83: 'Bullets Large',
+            84: 'Shells Small',
+            85: 'Shells Large',
+            86: 'Rockets Small',
+            87: 'Rockets Large',
+            88: 'Cells Small',
+            89: 'Cells Large',
+            90: 'BFG Cells',
+            // Pickups (91-102)
+            91: 'Armor Bonus',
+            92: 'Armor Shard',
+            93: 'Security Armor',
+            94: 'Combat Armor',
+            95: 'Berserker',
+            96: 'Medkit 10',
+            97: 'Medkit 25',
+            98: 'Medkit 100',
+            99: 'Soulsphere',
+            100: 'Credits',
+            101: 'Dog Food',
+            102: 'Dog Toy',
+            // Decorations (128-162)
+            128: 'Fire A',
+            129: 'Fire B',
+            130: 'Fire Pit',
+            131: 'Red Candle',
+            132: 'Green Candle',
+            133: 'Blue Candle',
+            134: 'Blue Torch',
+            135: 'Red Torch',
+            136: 'Light 1',
+            137: 'Light 2',
+            138: 'Barrel',
+            139: 'Toxic Barrel',
+            140: 'Gore Corpse',
+            141: 'Bones',
+            142: 'Table',
+            143: 'Chair',
+            144: 'Light 3',
+            145: 'Scientist 1',
+            146: 'Scientist 2',
+            147: 'Marine 1',
+            148: 'Marine 2',
+            149: 'Civilian 1',
+            150: 'Civilian 2',
+            151: 'Dr. Jensen',
+            152: 'Dr. Guerard',
+            153: 'Crate Small',
+            154: 'Crate Large',
+            155: 'Box',
+            156: 'Flower',
+            157: 'Trash',
+            158: 'Bucket',
+            159: 'Vent A',
+            160: 'Vent B',
+            161: 'Screen',
+            162: 'Terminal',
+            // Doors (305-315)
+            305: 'Door 1',
+            306: 'Door 2',
+            307: 'Door Locked',
+            308: 'Door Red',
+            309: 'Door Blue',
+            310: 'Door Yellow',
+            311: 'Door Green',
+            312: 'Secret Door',
+            313: 'Exit Door',
+            314: 'Elevator Door',
+            315: 'Airlock',
+            // Special (338-360)
+            338: 'Portal',
+            339: 'Save Station',
+            340: 'Heal Station',
+            341: 'Armor Station',
+            342: 'Dog',
+            343: 'Computer',
+            344: 'Item Vendor',
+            345: 'Weapon Vendor',
+            346: 'Upgrade Station',
+            347: 'Teleporter Pad',
+            348: 'Exit Sign',
+            349: 'Vent Exit',
+            350: 'Corpse Marine',
+            351: 'Corpse Scientist',
+            352: 'Corpse Civilian',
+            353: 'Blood Pool',
+            354: 'Gibs',
+            355: 'Hanging Body',
+            356: 'Impaled Body',
+            357: 'Sparks',
+            358: 'Steam',
+            359: 'Electricity',
+            360: 'Smoke'
+        };
+
+        function getSpriteName(id) {
+            return SPRITE_NAMES[id] || `Sprite ${id}`;
+        }
 
         // BSP Parser
         class BSPReader {
@@ -538,6 +740,7 @@
                 this.tileEvents = [];
                 this.byteCodes = [];
                 this.strings = [];
+                this.blockMap = new Array(1024).fill(0); // 32x32 tiles
             }
 
             parse(buffer) {
@@ -654,6 +857,18 @@
                             event.commands.push(this.byteCodes[cmdIdx]);
                         }
                     }
+                }
+
+                // Parse BlockMap (256 bytes, each byte contains flags for 4 tiles)
+                this.blockMap = new Array(1024).fill(0);
+                let tileIdx = 0;
+                for (let j = 0; j < 256; j++) {
+                    const flags = reader.readByte();
+                    this.blockMap[tileIdx + 0] = (flags >> 0) & 3;
+                    this.blockMap[tileIdx + 1] = (flags >> 2) & 3;
+                    this.blockMap[tileIdx + 2] = (flags >> 4) & 3;
+                    this.blockMap[tileIdx + 3] = (flags >> 6) & 3;
+                    tileIdx += 4;
                 }
 
                 return this;
@@ -804,6 +1019,8 @@
                 this.showSprites = true;
                 this.showEvents = true;
                 this.showGrid = false;
+                this.showBlockMap = false;
+                this.showRulers = true;
                 this.selectedEvent = null;
 
                 this.setupPanning();
@@ -918,12 +1135,44 @@
 
                 if (!this.map) return;
 
+                if (this.showBlockMap) this.drawBlockMap();
                 if (this.showGrid) this.drawGrid();
+                if (this.showRulers) this.drawRulers();
                 if (this.showNodes) this.drawNodes();
                 if (this.showLines) this.drawLines();
                 if (this.showEvents) this.drawEvents();
                 if (this.showSprites) this.drawSprites();
                 this.drawSpawn();
+            }
+
+            drawBlockMap() {
+                const ctx = this.ctx;
+                const tileSize = 64;
+
+                for (let tileY = 0; tileY < 32; tileY++) {
+                    for (let tileX = 0; tileX < 32; tileX++) {
+                        const tileIdx = tileY * 32 + tileX;
+                        const flag = this.map.blockMap[tileIdx];
+
+                        if (flag === 0) continue; // Passable, skip
+
+                        const p = this.worldToScreen(tileX * tileSize, tileY * tileSize);
+                        const size = tileSize * this.zoom;
+
+                        if (flag === 1) {
+                            // Blocked (wall)
+                            ctx.fillStyle = 'rgba(255, 0, 0, 0.3)';
+                        } else if (flag === 2) {
+                            // Special (door, etc.)
+                            ctx.fillStyle = 'rgba(255, 255, 0, 0.3)';
+                        } else if (flag === 3) {
+                            // Reserved
+                            ctx.fillStyle = 'rgba(255, 0, 255, 0.3)';
+                        }
+
+                        ctx.fillRect(p.x, p.y, size, size);
+                    }
+                }
             }
 
             drawGrid() {
@@ -955,6 +1204,48 @@
                     ctx.moveTo(p1.x, p1.y);
                     ctx.lineTo(p2.x, p2.y);
                     ctx.stroke();
+                }
+            }
+
+            drawRulers() {
+                const ctx = this.ctx;
+                const tileSize = 64;
+
+                ctx.font = '10px monospace';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+
+                // Draw horizontal ruler (X coordinates at top)
+                for (let tileX = 0; tileX < 32; tileX++) {
+                    const worldX = tileX * tileSize + tileSize / 2;
+                    const p = this.worldToScreen(worldX, 0);
+
+                    // Only draw if visible
+                    if (p.x >= 0 && p.x <= this.canvas.width) {
+                        // Background for readability
+                        ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+                        ctx.fillRect(p.x - 10, 2, 20, 14);
+
+                        ctx.fillStyle = '#888';
+                        ctx.fillText(tileX.toString(), p.x, 10);
+                    }
+                }
+
+                // Draw vertical ruler (Y coordinates at left)
+                ctx.textAlign = 'right';
+                for (let tileY = 0; tileY < 32; tileY++) {
+                    const worldY = tileY * tileSize + tileSize / 2;
+                    const p = this.worldToScreen(0, worldY);
+
+                    // Only draw if visible
+                    if (p.y >= 0 && p.y <= this.canvas.height) {
+                        // Background for readability
+                        ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+                        ctx.fillRect(2, p.y - 7, 18, 14);
+
+                        ctx.fillStyle = '#888';
+                        ctx.fillText(tileY.toString(), 18, p.y);
+                    }
                 }
             }
 
@@ -995,14 +1286,28 @@
 
                 for (const sprite of this.map.sprites) {
                     const p = this.worldToScreen(sprite.x, sprite.y);
-                    ctx.fillStyle = '#ff00ff';
+
+                    // Color-code sprites by type
+                    let color = '#ff00ff'; // default magenta
+                    const id = sprite.id;
+                    if (id >= 1 && id <= 12) color = '#ff6666'; // weapons - red
+                    else if (id >= 17 && id <= 54) color = '#ff3333'; // monsters - bright red
+                    else if (id >= 65 && id <= 73) color = '#ffff00'; // keys - yellow
+                    else if (id >= 81 && id <= 90) color = '#66ff66'; // ammo - green
+                    else if (id >= 91 && id <= 102) color = '#66ffff'; // pickups - cyan
+                    else if (id >= 128 && id <= 162) color = '#cc99ff'; // decorations/NPCs - purple
+                    else if (id >= 305 && id <= 315) color = '#6699ff'; // doors - blue
+                    else if (id >= 338 && id <= 360) color = '#ffcc66'; // special - orange
+
+                    ctx.fillStyle = color;
                     ctx.beginPath();
                     ctx.arc(p.x, p.y, 4, 0, Math.PI * 2);
                     ctx.fill();
 
                     ctx.fillStyle = '#fff';
                     ctx.font = '10px monospace';
-                    ctx.fillText(sprite.id.toString(), p.x + 6, p.y + 3);
+                    const spriteName = getSpriteName(sprite.id);
+                    ctx.fillText(spriteName, p.x + 6, p.y + 3);
                 }
             }
 
@@ -1263,6 +1568,16 @@
 
         document.getElementById('show-grid').addEventListener('change', (e) => {
             renderer.showGrid = e.target.checked;
+            renderer.render();
+        });
+
+        document.getElementById('show-blockmap').addEventListener('change', (e) => {
+            renderer.showBlockMap = e.target.checked;
+            renderer.render();
+        });
+
+        document.getElementById('show-rulers').addEventListener('change', (e) => {
+            renderer.showRulers = e.target.checked;
             renderer.render();
         });
 
