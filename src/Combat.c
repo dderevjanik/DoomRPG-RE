@@ -12,6 +12,7 @@
 #include "Hud.h"
 #include "ParticleSystem.h"
 #include "Sound.h"
+#include "IniFile.h"
 #include "SDL_Video.h"
 
 static byte monsterWpInfo[28] = {
@@ -44,6 +45,132 @@ static byte wpinfo[72] = {
 	1, 40, 20, 15, 20, 8, 
 	1, 40, 20, 15, 20, 8 };
 
+// Default weapon stats (hardcoded fallback)
+static const int defaultWeaponStats[19][8] = {
+	// strMin, strMax, rangeMin, rangeMax, ammoType, ammoUsage, damage, resourceID
+	{ 3, 12, 0, 70, 0, 0, 25, 5044 },     // 0: Axe
+	{ 1, 2, 0, 100, 0, 1, 204, 5045 },    // 1: Fire Ext
+	{ 6, 7, 5, 80, 1, 1, 102, 5046 },     // 2: Pistol
+	{ 6, 10, 2, 80, 2, 1, 128, 5047 },    // 3: Shotgun
+	{ 3, 6, 3, 90, 1, 3, 102, 5048 },     // 4: Chaingun
+	{ 12, 18, 1, 90, 2, 2, 51, 5049 },    // 5: Super Shotgun
+	{ 6, 8, 4, 90, 4, 3, 230, 5050 },     // 6: Plasma Gun
+	{ 15, 36, 8, 70, 3, 1, 128, 5051 },   // 7: Rocket Launcher
+	{ 60, 105, 8, 100, 4, 15, 76, 5052 }, // 8: BFG
+	{ 5, 9, 0, 75, 5, 0, 25, 5088 },      // 9: Hell Hound
+	{ 8, 12, 0, 75, 5, 0, 25, 5088 },     // 10: Cerberus
+	{ 15, 18, 0, 75, 5, 0, 25, 5088 },    // 11: Demon Wolf
+	{ 3, 5, 0, 90, 0, 0, 128, 5096 },     // 12: Melee Attack 1
+	{ 4, 7, 0, 80, 0, 0, 128, 0 },        // 13: Melee Attack 2
+	{ 5, 15, 0, 70, 0, 0, 128, 0 },       // 14: Melee Attack 3
+	{ 4, 10, 3, 85, 0, 0, 128, 5072 },    // 15: Imp/Caco/Pain/Vile Missile
+	{ 10, 20, 3, 75, 0, 0, 128, 0 },      // 16: Boss Missile
+	{ 15, 30, 2, 80, 0, 0, 128, 0 },      // 17: Rocket Missile
+	{ 0, 0, 0, 0, 0, 0, 0, 0 }            // 18: Null Attack
+};
+
+// Default monster stats (hardcoded fallback)
+static const int defaultMonsterStats[14][7] = {
+	// type, health, armor, defense, strength, agility, accuracy
+	{ 0, 5, 4, 13, 13, 13, 13 },       // 0: Zombie
+	{ 1, 7, 3, 12, 14, 12, 12 },       // 1: Hellhound
+	{ 2, 10, 5, 14, 7, 13, 12 },       // 2: Troop
+	{ 3, 9, 4, 13, 14, 13, 13 },       // 3: Imp
+	{ 4, 6, 3, 14, 6, 15, 15 },        // 4: Lost Soul
+	{ 5, 10, 5, 14, 16, 12, 13 },      // 5: Pinky
+	{ 6, 13, 7, 12, 10, 13, 15 },      // 6: Cacodemon
+	{ 7, 15, 8, 14, 12, 12, 12 },      // 7: Pain Elemental
+	{ 8, 13, 8, 16, 14, 15, 15 },      // 8: Revenant
+	{ 9, 20, 10, 16, 14, 15, 15 },     // 9: Mancubus
+	{ 10, 18, 9, 15, 17, 14, 16 },     // 10: Archvile
+	{ 11, 25, 15, 16, 15, 15, 15 },    // 11: Baron
+	{ 12, 600, 400, 45, 30, 35, 40 },  // 12: Cyberdemon
+	{ 13, 400, 250, 30, 35, 40, 55 }   // 13: Kronos
+};
+
+// Load weapon stats from INI file or use defaults
+static void Combat_loadWeaponStats(Combat_t* combat)
+{
+	IniFile_t* ini = IniFile_load("data/weapons.ini");
+	char sectionName[32];
+	
+	for (int i = 0; i < 19; i++) {
+		SDL_snprintf(sectionName, sizeof(sectionName), "Weapon.%d", i);
+		
+		int strMin, strMax, rangeMin, rangeMax, ammoType, ammoUsage, damage;
+		short resourceID;
+		
+		if (ini != NULL && IniFile_hasSection(ini, sectionName)) {
+			strMin = IniFile_getInt(ini, sectionName, "strMin", defaultWeaponStats[i][0]);
+			strMax = IniFile_getInt(ini, sectionName, "strMax", defaultWeaponStats[i][1]);
+			rangeMin = IniFile_getInt(ini, sectionName, "rangeMin", defaultWeaponStats[i][2]);
+			rangeMax = IniFile_getInt(ini, sectionName, "rangeMax", defaultWeaponStats[i][3]);
+			ammoType = IniFile_getInt(ini, sectionName, "ammoType", defaultWeaponStats[i][4]);
+			ammoUsage = IniFile_getInt(ini, sectionName, "ammoUsage", defaultWeaponStats[i][5]);
+			damage = IniFile_getInt(ini, sectionName, "damage", defaultWeaponStats[i][6]);
+			resourceID = (short)IniFile_getInt(ini, sectionName, "resourceID", defaultWeaponStats[i][7]);
+		} else {
+			strMin = defaultWeaponStats[i][0];
+			strMax = defaultWeaponStats[i][1];
+			rangeMin = defaultWeaponStats[i][2];
+			rangeMax = defaultWeaponStats[i][3];
+			ammoType = defaultWeaponStats[i][4];
+			ammoUsage = defaultWeaponStats[i][5];
+			damage = defaultWeaponStats[i][6];
+			resourceID = (short)defaultWeaponStats[i][7];
+		}
+		
+		Weapon_initWeapon(&combat->weaponInfo[i], strMin, strMax, rangeMin, rangeMax, ammoType, ammoUsage, damage, resourceID);
+	}
+	
+	if (ini != NULL) {
+		IniFile_free(ini);
+		printf("Combat_loadWeaponStats: Loaded weapon stats from INI\n");
+	} else {
+		printf("Combat_loadWeaponStats: Using default weapon stats\n");
+	}
+}
+
+// Load monster stats from INI file or use defaults
+static void Combat_loadMonsterStats(Combat_t* combat)
+{
+	IniFile_t* ini = IniFile_load("data/monsters.ini");
+	char sectionName[32];
+	
+	for (int i = 0; i < 14; i++) {
+		SDL_snprintf(sectionName, sizeof(sectionName), "Monster.%d", i);
+		
+		int type, health, armor, defense, strength, agility, accuracy;
+		
+		if (ini != NULL && IniFile_hasSection(ini, sectionName)) {
+			type = i; // Type is always the index
+			health = IniFile_getInt(ini, sectionName, "health", defaultMonsterStats[i][1]);
+			armor = IniFile_getInt(ini, sectionName, "armor", defaultMonsterStats[i][2]);
+			defense = IniFile_getInt(ini, sectionName, "defense", defaultMonsterStats[i][3]);
+			strength = IniFile_getInt(ini, sectionName, "strength", defaultMonsterStats[i][4]);
+			agility = IniFile_getInt(ini, sectionName, "agility", defaultMonsterStats[i][5]);
+			accuracy = IniFile_getInt(ini, sectionName, "accuracy", defaultMonsterStats[i][6]);
+		} else {
+			type = defaultMonsterStats[i][0];
+			health = defaultMonsterStats[i][1];
+			armor = defaultMonsterStats[i][2];
+			defense = defaultMonsterStats[i][3];
+			strength = defaultMonsterStats[i][4];
+			agility = defaultMonsterStats[i][5];
+			accuracy = defaultMonsterStats[i][6];
+		}
+		
+		CombatEntity_initCombatEntity(&combat->monsters[i], type, health, armor, defense, strength, agility, accuracy);
+	}
+	
+	if (ini != NULL) {
+		IniFile_free(ini);
+		printf("Combat_loadMonsterStats: Loaded monster stats from INI\n");
+	} else {
+		printf("Combat_loadMonsterStats: Using default monster stats\n");
+	}
+}
+
 Combat_t* Combat_init(Combat_t* combat, DoomRPG_t* doomRpg)
 {
 	printf("Combat_init\n");
@@ -64,39 +191,11 @@ Combat_t* Combat_init(Combat_t* combat, DoomRPG_t* doomRpg)
 	combat->doomRpg = doomRpg;
 	CombatEntity_initCombatEntity(&combat->aMobj, -1, 0, 0, 1, 1, 1, 1);
 	CombatEntity_initCombatEntity(&combat->bMobj, -1, 0, 0, 25, 1, 1, 1);
-	Weapon_initWeapon(&combat->weaponInfo[0], 3, 12, 0, 70, 0, 0, 25, 5044);	// Axe
-	Weapon_initWeapon(&combat->weaponInfo[1], 1, 2, 0, 100, 0, 1, 204, 5045);	// Fire Ext
-	Weapon_initWeapon(&combat->weaponInfo[2], 6, 7, 5, 80, 1, 1, 102, 5046);	// Pistol
-	Weapon_initWeapon(&combat->weaponInfo[3], 6, 10, 2, 80, 2, 1, 128, 5047);	// Shotgun
-	Weapon_initWeapon(&combat->weaponInfo[4], 3, 6, 3, 90, 1, 3, 102, 5048);	// Chaingun
-	Weapon_initWeapon(&combat->weaponInfo[5], 12, 18, 1, 90, 2, 2, 51, 5049);	// Super Shotgun
-	Weapon_initWeapon(&combat->weaponInfo[6], 6, 8, 4, 90, 4, 3, 230, 5050);	// Plasma Gun
-	Weapon_initWeapon(&combat->weaponInfo[7], 15, 36, 8, 70, 3, 1, 128, 5051);	// Rocket Launcher
-	Weapon_initWeapon(&combat->weaponInfo[8], 60, 105, 8, 100, 4, 15, 76, 5052);// BFG
-	Weapon_initWeapon(&combat->weaponInfo[9], 5, 9, 0, 75, 5, 0, 25, 5088);		// Hell Hound
-	Weapon_initWeapon(&combat->weaponInfo[10], 8, 12, 0, 75, 5, 0, 25, 5088);	// Cerberus
-	Weapon_initWeapon(&combat->weaponInfo[11], 15, 18, 0, 75, 5, 0, 25, 5088);	// Demon Wolf
-	Weapon_initWeapon(&combat->weaponInfo[12], 3, 5, 0, 90, 0, 0, 128, 5096);	// Melee Attack 1
-	Weapon_initWeapon(&combat->weaponInfo[13], 4, 7, 0, 80, 0, 0, 128, 0);		// Melee Attack 2
-	Weapon_initWeapon(&combat->weaponInfo[14], 5, 15, 0, 70, 0, 0, 128, 0);		// Melee Attack 3
-	Weapon_initWeapon(&combat->weaponInfo[15], 4, 10, 3, 85, 0, 0, 128, 5072);	// Imp/Caco/Pain/Vile Missle
-	Weapon_initWeapon(&combat->weaponInfo[16], 10, 20, 3, 75, 0, 0, 128, 0);	// Boss Missile
-	Weapon_initWeapon(&combat->weaponInfo[17], 15, 30, 2, 80, 0, 0, 128, 0);	// Rocket Missile
-	Weapon_initWeapon(&combat->weaponInfo[18], 0, 0, 0, 0, 0, 0, 0, 0);			// NUll Attack
-	CombatEntity_initCombatEntity(&combat->monsters[0], 0, 5, 4, 13, 13, 13, 13);		// Zombie Pvt -> Zombie Lt -> Zombie Cpt
-	CombatEntity_initCombatEntity(&combat->monsters[1], 1, 7, 3, 12, 14, 12, 12);		// Hellhound -> Cerberus -> Demon Wolf
-	CombatEntity_initCombatEntity(&combat->monsters[2], 2, 10, 5, 14, 7, 13, 12);		// Troop -> Commando -> Assassin
-	CombatEntity_initCombatEntity(&combat->monsters[3], 3, 9, 4, 13, 14, 13, 13);		// Impling -> Imp -> Imp Lord
-	CombatEntity_initCombatEntity(&combat->monsters[4], 4, 6, 3, 14, 6, 15, 15);		// Phantom -> Lost Soul -> Nightmare
-	CombatEntity_initCombatEntity(&combat->monsters[5], 5, 10, 5, 14, 16, 12, 13);		// Bull Demon -> Pinky -> Belphegor
-	CombatEntity_initCombatEntity(&combat->monsters[6], 6, 13, 7, 12, 10, 13, 15);		// Malwrath -> Cacodemon -> Wretched
-	CombatEntity_initCombatEntity(&combat->monsters[7], 7, 15, 8, 14, 12, 12, 12);		// Beholder -> Rahovart -> Pain Elemental
-	CombatEntity_initCombatEntity(&combat->monsters[8], 8, 13, 8, 16, 14, 15, 15);		// Ghoul -> Fiend -> Revenant
-	CombatEntity_initCombatEntity(&combat->monsters[9], 9, 20, 10, 16, 14, 15, 15);		// Behemoth -> Mancubus -> Druj
-	CombatEntity_initCombatEntity(&combat->monsters[10], 10, 18, 9, 15, 17, 14, 16);	// Infernis -> Archvile -> Apollyon
-	CombatEntity_initCombatEntity(&combat->monsters[11], 11, 25, 15, 16, 15, 15, 15);	// Ogre -> Hell Knight -> Baron
-	CombatEntity_initCombatEntity(&combat->monsters[12], 12, 600, 400, 45, 30, 35, 40);	// Cyberdemon
-	CombatEntity_initCombatEntity(&combat->monsters[13], 13, 400, 250, 30, 35, 40, 55);	// Kronos
+	
+	// Load weapon and monster stats from INI files (with hardcoded fallbacks)
+	Combat_loadWeaponStats(combat);
+	Combat_loadMonsterStats(combat);
+	
 	combat->gotCrit = false;
 	combat->kronosTeleporterDest = false;
 

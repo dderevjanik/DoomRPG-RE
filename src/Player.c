@@ -16,6 +16,75 @@
 #include "MenuSystem.h"
 #include "Sound.h"
 #include "SDL_Video.h"
+#include "IniFile.h"
+
+// Default player starting stats (fallback if INI not found)
+static struct {
+    int maxHealth;
+    int maxArmor;
+    int defense;
+    int strength;
+    int agility;
+    int accuracy;
+    int startingCredits;
+    int startingLevel;
+    int nextLevelXP;
+    int startingWeapons;
+    int startingWeapon;
+    int ammoBullets;
+    boolean loaded;
+} playerStats = {
+    .maxHealth = 30,
+    .maxArmor = 20,
+    .defense = 16,
+    .strength = 12,
+    .agility = 14,
+    .accuracy = 16,
+    .startingCredits = 0,
+    .startingLevel = 1,
+    .nextLevelXP = 80,
+    .startingWeapons = 4,  // Pistol
+    .startingWeapon = 2,   // Pistol
+    .ammoBullets = 8,
+    .loaded = false
+};
+
+// Load player stats from INI file
+static void Player_loadStats(void)
+{
+    if (playerStats.loaded) {
+        return;
+    }
+
+    IniFile_t* ini = IniFile_load("data/player.ini");
+    if (ini == NULL) {
+        printf("Player_loadStats: Using default player stats (INI not found)\n");
+        playerStats.loaded = true;
+        return;
+    }
+
+    // Load starting combat stats
+    playerStats.maxHealth = IniFile_getInt(ini, "Player", "health", 30);
+    playerStats.maxArmor = IniFile_getInt(ini, "Player", "maxArmor", 20);
+    playerStats.defense = IniFile_getInt(ini, "Player", "defense", 16);
+    playerStats.strength = IniFile_getInt(ini, "Player", "strength", 12);
+    playerStats.agility = IniFile_getInt(ini, "Player", "agility", 14);
+    playerStats.accuracy = IniFile_getInt(ini, "Player", "accuracy", 16);
+
+    // Load starting resources
+    playerStats.startingCredits = IniFile_getInt(ini, "Player", "startingCredits", 0);
+    playerStats.startingLevel = IniFile_getInt(ini, "Player", "startingLevel", 1);
+    playerStats.nextLevelXP = IniFile_getInt(ini, "Player", "nextLevelXP", 80);
+
+    // Load starting weapons and ammo
+    playerStats.startingWeapons = IniFile_getInt(ini, "Player", "startingWeapons", 4);
+    playerStats.startingWeapon = IniFile_getInt(ini, "Player", "startingWeapon", 2);
+    playerStats.ammoBullets = IniFile_getInt(ini, "Player", "ammoBullets", 8);
+
+    IniFile_free(ini);
+    playerStats.loaded = true;
+    printf("Player_loadStats: Loaded player stats from INI\n");
+}
 
 Player_t* Player_init(Player_t* player, DoomRPG_t* doomRpg)
 {
@@ -707,15 +776,18 @@ void Player_reset(Player_t* player)
 	int i;
 	CombatEntity_t* ce;
 
+	// Load player stats from INI (if not already loaded)
+	Player_loadStats();
+
 	player->doomRpg->hud->logMessage[0] = '\0';
 	player->doomRpg->hud->msgCount = 0;
 	player->facingEntity = NULL;
 	player->noclip = false;
-	player->level = 1;
+	player->level = playerStats.startingLevel;
 	player->currentXP = 0;
-	player->nextLevelXP = 80;
+	player->nextLevelXP = playerStats.nextLevelXP;
 	player->keys = 0;
-	player->credits = 0;
+	player->credits = playerStats.startingCredits;
 
 	i = 0;
 	do {
@@ -727,9 +799,9 @@ void Player_reset(Player_t* player)
 		player->inventory[i] = 0;
 	} while (++i < 5);
 
-	player->ammo[1] = 8;
-	player->weapon = 2;
-	player->weapons = 4;
+	player->ammo[1] = playerStats.ammoBullets;
+	player->weapon = playerStats.startingWeapon;
+	player->weapons = playerStats.startingWeapons;
 	player->disabledWeapons = 0;
 	player->foundSecretsLevels = 0;
 	player->killedMonstersLevels = 0;
@@ -737,14 +809,14 @@ void Player_reset(Player_t* player)
 	player->prevCeilingColor = 0;
 
 	ce = &player->ce;
-	CombatEntity_setMaxHealth(ce, 30);
-	CombatEntity_setHealth(ce, 30);
-	CombatEntity_setMaxArmor(ce, 20);
+	CombatEntity_setMaxHealth(ce, playerStats.maxHealth);
+	CombatEntity_setHealth(ce, playerStats.maxHealth);
+	CombatEntity_setMaxArmor(ce, playerStats.maxArmor);
 	CombatEntity_setArmor(ce, 0);
-	CombatEntity_setDefense(ce, 16);
-	CombatEntity_setStrength(ce, 12);
-	CombatEntity_setAgility(ce, 14);
-	CombatEntity_setAccuracy(ce, 16);
+	CombatEntity_setDefense(ce, playerStats.defense);
+	CombatEntity_setStrength(ce, playerStats.strength);
+	CombatEntity_setAgility(ce, playerStats.agility);
+	CombatEntity_setAccuracy(ce, playerStats.accuracy);
 	player->ce.mType = -1;
 	player->totalTime = 0;
 	player->totalMoves = 0;
