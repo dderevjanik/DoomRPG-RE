@@ -52,4 +52,12 @@ SDL_bool IniFile_hasKey(IniFile_t* ini, const char* section, const char* key);
 // Get section by name
 IniSection_t* IniFile_getSection(IniFile_t* ini, const char* section);
 
+// INI file creation and writing
+IniFile_t* IniFile_create(void);
+IniSection_t* IniFile_createSection(IniFile_t* ini, const char* sectionName);
+void IniFile_setString(IniFile_t* ini, const char* section, const char* key, const char* value);
+void IniFile_setInt(IniFile_t* ini, const char* section, const char* key, int value);
+void IniFile_setBool(IniFile_t* ini, const char* section, const char* key, SDL_bool value);
+SDL_bool IniFile_save(IniFile_t* ini, const char* filepath);
+
 #endif

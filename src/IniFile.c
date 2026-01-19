@@ -293,3 +293,104 @@ SDL_bool IniFile_hasKey(IniFile_t* ini, const char* sectionName, const char* key
 
     return IniSection_getEntry(section, key) != NULL ? SDL_TRUE : SDL_FALSE;
 }
+
+IniFile_t* IniFile_create(void)
+{
+    IniFile_t* ini = (IniFile_t*)SDL_malloc(sizeof(IniFile_t));
+    if (ini == NULL) {
+        return NULL;
+    }
+
+    SDL_memset(ini, 0, sizeof(IniFile_t));
+    ini->sections = NULL;
+    ini->filepath[0] = '\0';
+
+    return ini;
+}
+
+IniSection_t* IniFile_createSection(IniFile_t* ini, const char* sectionName)
+{
+    if (ini == NULL || sectionName == NULL) {
+        return NULL;
+    }
+
+    // Check if section already exists
+    IniSection_t* existing = IniFile_getSection(ini, sectionName);
+    if (existing != NULL) {
+        return existing;
+    }
+
+    IniSection_t* section = IniSection_create(sectionName);
+    if (section != NULL) {
+        IniFile_addSection(ini, section);
+    }
+
+    return section;
+}
+
+void IniFile_setString(IniFile_t* ini, const char* sectionName, const char* key, const char* value)
+{
+    if (ini == NULL || sectionName == NULL || key == NULL) {
+        return;
+    }
+
+    IniSection_t* section = IniFile_createSection(ini, sectionName);
+    if (section == NULL) {
+        return;
+    }
+
+    // Check if entry already exists
+    IniEntry_t* entry = IniSection_getEntry(section, key);
+    if (entry != NULL) {
+        strncpy(entry->value, value ? value : "", INI_MAX_VALUE_LENGTH - 1);
+        entry->value[INI_MAX_VALUE_LENGTH - 1] = '\0';
+    } else {
+        entry = IniEntry_create(key, value ? value : "");
+        if (entry != NULL) {
+            IniSection_addEntry(section, entry);
+        }
+    }
+}
+
+void IniFile_setInt(IniFile_t* ini, const char* sectionName, const char* key, int value)
+{
+    char buffer[32];
+    SDL_snprintf(buffer, sizeof(buffer), "%d", value);
+    IniFile_setString(ini, sectionName, key, buffer);
+}
+
+void IniFile_setBool(IniFile_t* ini, const char* sectionName, const char* key, SDL_bool value)
+{
+    IniFile_setString(ini, sectionName, key, value ? "true" : "false");
+}
+
+SDL_bool IniFile_save(IniFile_t* ini, const char* filepath)
+{
+    if (ini == NULL || filepath == NULL) {
+        return SDL_FALSE;
+    }
+
+    FILE* file = fopen(filepath, "w");
+    if (file == NULL) {
+        printf("IniFile_save: Could not open file '%s' for writing\n", filepath);
+        return SDL_FALSE;
+    }
+
+    IniSection_t* section = ini->sections;
+    while (section != NULL) {
+        fprintf(file, "[%s]\n", section->name);
+
+        IniEntry_t* entry = section->entries;
+        while (entry != NULL) {
+            fprintf(file, "%s=%s\n", entry->key, entry->value);
+            entry = entry->next;
+        }
+
+        fprintf(file, "\n");
+        section = section->next;
+    }
+
+    fclose(file);
+    printf("IniFile_save: Saved '%s'\n", filepath);
+    return SDL_TRUE;
+}

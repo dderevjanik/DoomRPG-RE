@@ -18,6 +18,7 @@
 #include "Player.h"
 #include "Sound.h"
 #include "SDL_Video.h"
+#include "IniFile.h"
 
 // #define CONFIG_VERSION 22 // Original Brew Version
 
@@ -693,110 +694,55 @@ void Game_linkEntity(Game_t* game, Entity_t* entity, int x, int y)
 
 void Game_loadConfig(Game_t* game)
 {
-	SDL_RWops* rw;
-	int version;
-	byte boolData;
-	int intData;
-	
+	IniFile_t* ini;
+	char keyName[32];
+
 	printf("loadConfig\n");
 
-	rw = SDL_RWFromFile("Config", "r");
-	if (rw) {
-		version = File_readInt(rw);
-		if (version == CONFIG_VERSION) {
-			boolData = File_readByte(rw);
-			if (game) {
-				game->doomRpg->doomCanvas->vibrateEnabled = boolData != 0 ? true : false;
-			}
+	ini = IniFile_load("config.ini");
+	if (ini) {
+		// Game settings
+		if (game) {
+			game->doomRpg->doomCanvas->vibrateEnabled = IniFile_getBool(ini, "Game", "VibrateEnabled", SDL_FALSE);
+			game->doomRpg->sound->volume = IniFile_getInt(ini, "Game", "Volume", 100);
+			DoomCanvas_setAnimFrames(game->doomRpg->doomCanvas, IniFile_getInt(ini, "Game", "AnimFrames", 1));
+			game->doomRpg->player->totalDeaths = IniFile_getInt(ini, "Game", "TotalDeaths", 0);
+			game->doomRpg->doomCanvas->sndPriority = IniFile_getBool(ini, "Game", "SoundPriority", SDL_FALSE);
+			game->doomRpg->doomCanvas->renderFloorCeilingTextures = IniFile_getBool(ini, "Game", "RenderFloorCeilingTextures", SDL_TRUE);
+		}
 
-			intData = File_readInt(rw);
-			if (game) {
-				game->doomRpg->sound->volume = intData;
-			}
+		// Video settings
+		sdlVideo.fullScreen = IniFile_getBool(ini, "Video", "FullScreen", SDL_FALSE);
+		sdlVideo.vSync = IniFile_getBool(ini, "Video", "VSync", SDL_TRUE);
+		sdlVideo.integerScaling = IniFile_getBool(ini, "Video", "IntegerScaling", SDL_FALSE);
+		sdlVideo.displaySoftKeys = IniFile_getBool(ini, "Video", "DisplaySoftKeys", SDL_TRUE);
+		sdlVideo.resolutionIndex = IniFile_getInt(ini, "Video", "ResolutionIndex", 1);
 
-			intData = File_readInt(rw);
-			if (game) {
-				DoomCanvas_setAnimFrames(game->doomRpg->doomCanvas, intData);
-			}
+		// Mouse settings
+		if (game) {
+			game->doomRpg->doomCanvas->mouseSensitivity = IniFile_getInt(ini, "Mouse", "Sensitivity", 50);
+			game->doomRpg->doomCanvas->mouseYMove = IniFile_getBool(ini, "Mouse", "YMove", SDL_FALSE);
+		}
 
-			intData = File_readInt(rw);
-			if (game) {
-				game->doomRpg->player->totalDeaths = intData;
-			}
+		// Controller settings
+		sdlController.deadZoneLeft = IniFile_getInt(ini, "Controller", "DeadZoneLeft", 8000);
+		sdlController.deadZoneRight = IniFile_getInt(ini, "Controller", "DeadZoneRight", 8000);
 
-			// New
-			boolData = File_readByte(rw);
-			sdlVideo.fullScreen = boolData != 0 ? true : false;
-
-			// New
-			boolData = File_readByte(rw);
-			sdlVideo.vSync = boolData != 0 ? true : false;
-
-			// New
-			boolData = File_readByte(rw);
-			sdlVideo.integerScaling = boolData != 0 ? true : false;
-
-			// New
-			boolData = File_readByte(rw);
-			sdlVideo.displaySoftKeys = boolData != 0 ? true : false;
-			
-			// New
-			intData = File_readInt(rw);
-			sdlVideo.resolutionIndex = intData;
-
-			// New
-			intData = File_readInt(rw);
-			if (game) {
-				game->doomRpg->doomCanvas->mouseSensitivity = intData;
-			}
-
-			// New
-			boolData = File_readByte(rw);
-			if (game) {
-				game->doomRpg->doomCanvas->mouseYMove = boolData != 0 ? true : false;
-			}
-
-			// New
-			intData = File_readInt(rw);
-			sdlController.deadZoneLeft = intData;
-
-			// New
-			intData = File_readInt(rw);
-			sdlController.deadZoneRight = intData;
-
-			// New
-			boolData = File_readByte(rw);
-			if (game) {
-				game->doomRpg->doomCanvas->sndPriority = boolData != 0 ? true : false;
-			}
-
-			// New
-			boolData = File_readByte(rw);
-			if (game) {
-				game->doomRpg->doomCanvas->renderFloorCeilingTextures = boolData != 0 ? true : false;
-			}
-
-			// New
-			if (game) {
-				for (int i = 0; i < 12; i++) {
-					for (int j = 0; j < KEYBINDS_MAX; j++) {
-						keyMapping[i].keyBinds[j] = File_readInt(rw);
-					}
+		// Key bindings
+		if (game) {
+			for (int i = 0; i < 12; i++) {
+				for (int j = 0; j < KEYBINDS_MAX; j++) {
+					SDL_snprintf(keyName, sizeof(keyName), "Action%d_Bind%d", i, j);
+					keyMapping[i].keyBinds[j] = IniFile_getInt(ini, "KeyBindings", keyName, keyMappingDefault[i].keyBinds[j]);
 				}
-				SDL_memcpy(keyMappingTemp, keyMapping, sizeof(keyMapping));
 			}
+			SDL_memcpy(keyMappingTemp, keyMapping, sizeof(keyMapping));
+		}
 
-		}
-		else {
-			printf("loadConfig: save version mismatch (expected %d found %d)\n", CONFIG_VERSION, version);
-		}
+		IniFile_free(ini);
 	}
 	else {
-		printf("loadConfig: (%s)\n", SDL_GetError());
-	}
-
-	if (rw) {
-		SDL_RWclose(rw);
+		printf("loadConfig: config.ini not found, using defaults\n");
 	}
 }
 
@@ -1914,39 +1860,48 @@ boolean Game_runEvent(Game_t* game, int event, int index, int flags)
 
 void Game_saveConfig(Game_t* game, int num)
 {
-	SDL_RWops* rw;
-	int version;
-	//printf("saveConfig %d\event", num);
+	IniFile_t* ini;
+	char keyName[32];
 
-	rw = SDL_RWFromFile("Config", "w");
+	ini = IniFile_create();
+	if (ini == NULL) {
+		printf("saveConfig: Failed to create INI file\n");
+		return;
+	}
 
-	version = CONFIG_VERSION;
-	File_writeInt(rw, version);
-	File_writeByte(rw, game->doomRpg->doomCanvas->vibrateEnabled);
-	File_writeInt(rw, game->doomRpg->sound->volume);
-	File_writeInt(rw, game->doomRpg->doomCanvas->animFrames);
-	File_writeInt(rw, game->doomRpg->player->totalDeaths);
+	// Game settings
+	IniFile_setBool(ini, "Game", "VibrateEnabled", game->doomRpg->doomCanvas->vibrateEnabled);
+	IniFile_setInt(ini, "Game", "Volume", game->doomRpg->sound->volume);
+	IniFile_setInt(ini, "Game", "AnimFrames", game->doomRpg->doomCanvas->animFrames);
+	IniFile_setInt(ini, "Game", "TotalDeaths", game->doomRpg->player->totalDeaths);
+	IniFile_setBool(ini, "Game", "SoundPriority", game->doomRpg->doomCanvas->sndPriority);
+	IniFile_setBool(ini, "Game", "RenderFloorCeilingTextures", game->doomRpg->doomCanvas->renderFloorCeilingTextures);
 
-	// New
-	File_writeByte(rw, sdlVideo.fullScreen);
-	File_writeByte(rw, sdlVideo.vSync);
-	File_writeByte(rw, sdlVideo.integerScaling);
-	File_writeByte(rw, sdlVideo.displaySoftKeys);
-	File_writeInt(rw, sdlVideo.resolutionIndex);
-	File_writeInt(rw, game->doomRpg->doomCanvas->mouseSensitivity);
-	File_writeByte(rw, game->doomRpg->doomCanvas->mouseYMove);
-	File_writeInt(rw, sdlController.deadZoneLeft);
-	File_writeInt(rw, sdlController.deadZoneRight);
-	File_writeByte(rw, game->doomRpg->doomCanvas->sndPriority);
-	File_writeByte(rw, game->doomRpg->doomCanvas->renderFloorCeilingTextures);
+	// Video settings
+	IniFile_setBool(ini, "Video", "FullScreen", sdlVideo.fullScreen);
+	IniFile_setBool(ini, "Video", "VSync", sdlVideo.vSync);
+	IniFile_setBool(ini, "Video", "IntegerScaling", sdlVideo.integerScaling);
+	IniFile_setBool(ini, "Video", "DisplaySoftKeys", sdlVideo.displaySoftKeys);
+	IniFile_setInt(ini, "Video", "ResolutionIndex", sdlVideo.resolutionIndex);
 
+	// Mouse settings
+	IniFile_setInt(ini, "Mouse", "Sensitivity", game->doomRpg->doomCanvas->mouseSensitivity);
+	IniFile_setBool(ini, "Mouse", "YMove", game->doomRpg->doomCanvas->mouseYMove);
+
+	// Controller settings
+	IniFile_setInt(ini, "Controller", "DeadZoneLeft", sdlController.deadZoneLeft);
+	IniFile_setInt(ini, "Controller", "DeadZoneRight", sdlController.deadZoneRight);
+
+	// Key bindings
 	for (int i = 0; i < 12; i++) {
 		for (int j = 0; j < KEYBINDS_MAX; j++) {
-			File_writeInt(rw, keyMapping[i].keyBinds[j]);
+			SDL_snprintf(keyName, sizeof(keyName), "Action%d_Bind%d", i, j);
+			IniFile_setInt(ini, "KeyBindings", keyName, keyMapping[i].keyBinds[j]);
 		}
 	}
 
-	SDL_RWclose(rw);
+	IniFile_save(ini, "config.ini");
+	IniFile_free(ini);
 }
 
 void Game_savePlayerState(Game_t* game, char* fileName, char* fileMapName, int x, int y, int angle)
