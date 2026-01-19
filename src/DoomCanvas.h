@@ -150,6 +150,7 @@ typedef struct DoomCanvas_s
 	boolean mouseYMove; // New
 	boolean sndPriority; // New
 	boolean renderFloorCeilingTextures; // New
+	boolean debugEnabled; // New - enables debug/cheat menu from config
 
 	struct DoomRPG_s* doomRpg;
 	struct Render_s* render;

@@ -709,6 +709,7 @@ void Game_loadConfig(Game_t* game)
 			game->doomRpg->player->totalDeaths = IniFile_getInt(ini, "Game", "TotalDeaths", 0);
 			game->doomRpg->doomCanvas->sndPriority = IniFile_getBool(ini, "Game", "SoundPriority", SDL_FALSE);
 			game->doomRpg->doomCanvas->renderFloorCeilingTextures = IniFile_getBool(ini, "Game", "RenderFloorCeilingTextures", SDL_TRUE);
+			game->doomRpg->doomCanvas->debugEnabled = IniFile_getBool(ini, "Game", "Debug", SDL_FALSE);
 		}
 
 		// Video settings

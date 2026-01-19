@@ -349,6 +349,9 @@ void Menu_initMenu(Menu_t* menu, int i)
 			MenuItem_Set(&menuSystem->items[menuSystem->numItems++], "Start Game", 2, 0);
 			MenuItem_Set(&menuSystem->items[menuSystem->numItems++], "Options   ", 2, 0);
 			MenuItem_Set(&menuSystem->items[menuSystem->numItems++], "Help/About", 2, 0);
+			if (menu->doomRpg->doomCanvas->debugEnabled) {
+				MenuItem_Set(&menuSystem->items[menuSystem->numItems++], "Debug     ", 2, 0);
+			}
 			MenuItem_Set(&menuSystem->items[menuSystem->numItems++], "Exit      ", 2, 0);
 			break;
 		}
@@ -821,8 +824,8 @@ void Menu_initMenu(Menu_t* menu, int i)
 			MenuItem_Set2(&menuSystem->items[menuSystem->numItems++], "Pos:", text, 0, 0);
 
 			
-			// En el código fuente original se obtiene la memoria RAM del dispositivo
-			// In the actual source code, the device’s RAM memory is obtained
+			// En el cï¿½digo fuente original se obtiene la memoria RAM del dispositivo
+			// In the actual source code, the deviceï¿½s RAM memory is obtained
 			// SDL_snprintf(text, sizeof(text), "%dK", ((menu->doomRpg->m_DeviceInfo).dwRAM + 1023) / 1024);
 			
 			// Actualmente se obtiene el total de toda la momoria inicializada
@@ -1245,7 +1248,13 @@ int Menu_select(Menu_t* menu, int menuId, int itemId)
 				return MENU_MAIN_HELP_ABOUT; // Help/About
 			}
 			else if (itemId == 3) {
+				if (menu->doomRpg->doomCanvas->debugEnabled) {
+					return MENU_DEBUG; // Debug
+				}
 				return MENU_MAIN_EXIT; // Exit
+			}
+			else if (itemId == 4) {
+				return MENU_MAIN_EXIT; // Exit (when debug enabled)
 			}
 			else {
 				return MENU_NONE;
