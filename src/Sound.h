@@ -25,18 +25,14 @@ typedef struct AudioFile_s
 
 typedef struct SoundChannel_s
 {
-	//int heap;
 #ifdef __EMSCRIPTEN__
-	void* mediaAudioSound;	// Stub for Emscripten (audio disabled)
-	void* mediaAudioMusic;	// Stub for Emscripten (audio disabled)
+	void* mediaAudioSound;
+	void* mediaAudioMusic;
 #else
 	Mix_Chunk* mediaAudioSound;
-	//Mix_Music* mediaAudioMusic;
 	fluid_player_t* mediaAudioMusic;
 #endif
 	int size;
-	//short resourceID;
-	//byte field_0xe;
 	byte flags;
 } SoundChannel_t;
 
@@ -49,7 +45,7 @@ typedef struct Sound_s
 	struct SoundChannel_s soundChannel[MAX_SOUNDCHANNELS+1];
 	int volume;
 	struct DoomRPG_s* doomRpg;
-	AudioFile_t* audioFiles; // New
+	AudioFile_t* audioFiles;
 } Sound_t;
 
 Sound_t* Sound_init(Sound_t* sound, DoomRPG_t* doomRpg);

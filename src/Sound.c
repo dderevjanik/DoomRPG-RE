@@ -1,8 +1,5 @@
 
 #include <SDL.h>
-#ifndef __EMSCRIPTEN__
-#include <SDL_mixer.h>
-#endif
 #include <stdio.h>
 
 #include "DoomRPG.h"
@@ -10,15 +7,150 @@
 #include "Sound.h"
 #include "Menu.h"
 #include "MenuSystem.h"
+
+#ifdef __EMSCRIPTEN__
+// ============================================================================
+// Emscripten stub implementation - audio disabled for web builds
+// ============================================================================
+
+Sound_t* Sound_init(Sound_t* sound, DoomRPG_t* doomRpg)
+{
+	int i;
+	SoundChannel_t* chan;
+
+	printf("Sound_init\n");
+
+	if (sound == NULL) {
+		sound = SDL_malloc(sizeof(Sound_t));
+		if (sound == NULL) {
+			return NULL;
+		}
+	}
+	SDL_memset(sound, 0, sizeof(Sound_t));
+
+	sound->soundEnabled = 0;
+	sound->priority = 3;
+	sound->channel = 0;
+	sound->volume = 100;
+
+	for (i = 0; i < (MAX_SOUNDCHANNELS + 1); i++) {
+		chan = &sound->soundChannel[i];
+		chan->mediaAudioSound = NULL;
+		chan->mediaAudioMusic = NULL;
+		chan->size = 0;
+	}
+
+	sound->doomRpg = doomRpg;
+	printf("Audio disabled for web build\n");
+
+	return sound;
+}
+
+void Sound_free(Sound_t* sound, boolean freePtr)
+{
+	if (freePtr) {
+		SDL_free(sound);
+	}
+}
+
+void Sound_stopSounds(Sound_t* sound)
+{
+	sound->priority = 0;
+}
+
+void Sound_freeSound(Sound_t* sound, int chan)
+{
+	SoundChannel_t* sChannel = &sound->soundChannel[chan];
+	sChannel->flags = 0;
+	sChannel->mediaAudioSound = NULL;
+	sChannel->mediaAudioMusic = NULL;
+}
+
+int Sound_getState(Sound_t* sound, int resourceID)
+{
+	(void)resourceID;
+	return sound->nextplay;
+}
+
+int Sound_getFreeChanel(Sound_t* sound)
+{
+	(void)sound;
+	return -1;
+}
+
+void Sound_loadSound(Sound_t* sound, int chan, short resourceID)
+{
+	(void)sound;
+	(void)chan;
+	(void)resourceID;
+}
+
+void Sound_readySound(Sound_t* sound, int chan)
+{
+	(void)sound;
+	(void)chan;
+}
+
+void Sound_playSound(Sound_t* sound, int resourceID, byte flags, int priority)
+{
+	(void)sound;
+	(void)resourceID;
+	(void)flags;
+	(void)priority;
+}
+
+void Sound_freeSounds(Sound_t* sound)
+{
+	int chan = 0;
+	do {
+		Sound_freeSound(sound, chan);
+	} while (++chan < (MAX_SOUNDCHANNELS + 1));
+}
+
+int Sound_getFromResourceID(int resourceID)
+{
+	(void)resourceID;
+	return -1;
+}
+
+void Sound_updateVolume(Sound_t* sound)
+{
+	int menu = sound->doomRpg->menuSystem->menu;
+	if (menu == MENU_SOUND || menu == MENU_INGAME_SOUND) {
+		Menu_textVolume(sound->doomRpg->menu, sound->volume);
+	}
+}
+
+int Sound_minusVolume(Sound_t* sound, int volume)
+{
+	sound->volume -= volume;
+	if (sound->volume < 0) {
+		sound->volume = 0;
+	}
+	Sound_updateVolume(sound);
+	return sound->volume;
+}
+
+int Sound_addVolume(Sound_t* sound, int volume)
+{
+	sound->volume += volume;
+	if (sound->volume > 100) {
+		sound->volume = 100;
+	}
+	Sound_updateVolume(sound);
+	return sound->volume;
+}
+
+#else
+// ============================================================================
+// Real SDL_mixer + FluidSynth implementation
+// ============================================================================
+
+#include <SDL_mixer.h>
 #include "SDL_Video.h"
 #include "Z_Zip.h"
 
-#ifdef __EMSCRIPTEN__
-// Audio is disabled for Emscripten builds
-#define INIT_ALLSOUNDS	0
-#else
 #define INIT_ALLSOUNDS	1
-#endif
 
 static int soundTable[MAX_AUDIOFILES] = {
 	5039, 5040, 5042, 5043, 5044, 5045, 5046, 5047, 5048, 5049, 5050,
@@ -39,8 +171,7 @@ Sound_t* Sound_init(Sound_t* sound, DoomRPG_t* doomRpg)
 
 	printf("Sound_init\n");
 
-	if (sound == NULL)
-	{
+	if (sound == NULL) {
 		sound = SDL_malloc(sizeof(Sound_t));
 		if (sound == NULL) {
 			return NULL;
@@ -48,46 +179,22 @@ Sound_t* Sound_init(Sound_t* sound, DoomRPG_t* doomRpg)
 	}
 	SDL_memset(sound, 0, sizeof(Sound_t));
 
-#ifdef __EMSCRIPTEN__
-	// Audio disabled for web builds
 	sound->soundEnabled = 0;
 	sound->priority = 3;
 	sound->channel = 0;
 	sound->volume = 100;
-	i = 0;
-	do {
-		chan = &sound->soundChannel[i];
-		chan->mediaAudioSound = NULL;
-		chan->mediaAudioMusic = NULL;
-		chan->size = 0;
-	} while (++i < (MAX_SOUNDCHANNELS+1));
-	sound->doomRpg = doomRpg;
-	printf("Audio disabled for web build\n");
-#else
-	sound->soundEnabled = 0;
-	sound->priority = 3;
-	sound->channel = 0;
-	sound->volume = 100;
-	i = 0;
-	do {
-		chan = &sound->soundChannel[i];
-		//chan->heap = 0;
-		chan->mediaAudioSound = NULL;
-		chan->mediaAudioMusic = NULL;
-		chan->size = 0;
-		//chan->resourceID = 0;
-		//chan->field_0xe = 0;
-	} while (++i < (MAX_SOUNDCHANNELS+1));
-	sound->doomRpg = doomRpg;
 
+	for (i = 0; i < (MAX_SOUNDCHANNELS + 1); i++) {
+		chan = &sound->soundChannel[i];
+		chan->mediaAudioSound = NULL;
+		chan->mediaAudioMusic = NULL;
+		chan->size = 0;
+	}
+
+	sound->doomRpg = doomRpg;
 
 	Mix_AllocateChannels(MAX_SOUNDCHANNELS);
-	//Mix_VolumeMusic((sound->volume * MIX_MAX_VOLUME) / 100);
 	Mix_Volume(-1, (sound->volume * MIX_MAX_VOLUME) / 100);
-
-	//printf("Num Channes is: %d\n", Mix_AllocateChannels(-1));
-	//printf("Music volume is: %d\n", Mix_VolumeMusic(-1));
-	//printf("Sound volume is: %d\n", Mix_Volume(-1, -1));
 
 	// Allowed range of synth.gain is 0.0 to 10.0
 	fluid_settings_setnum(fluidSynth.settings, "synth.gain", 1.0 * ((sound->volume * MIX_MAX_VOLUME) / 100) / 128.0);
@@ -95,8 +202,7 @@ Sound_t* Sound_init(Sound_t* sound, DoomRPG_t* doomRpg)
 #if INIT_ALLSOUNDS
 	sound->audioFiles = SDL_malloc(sizeof(AudioFile_t) * MAX_AUDIOFILES);
 
-	for (i = 0; i < MAX_AUDIOFILES; i++)
-	{
+	for (i = 0; i < MAX_AUDIOFILES; i++) {
 		SDL_RWops* rw;
 		char fileName[128];
 		byte* fdata;
@@ -106,11 +212,6 @@ Sound_t* Sound_init(Sound_t* sound, DoomRPG_t* doomRpg)
 			snprintf(fileName, sizeof(fileName), "%03d.mid", soundTable[i]);
 
 			fdata = readZipFileEntry(fileName, &zipFile, &fSize);
-			//rw = SDL_RWFromMem(fdata, fSize);
-			//if (!rw) {
-			//	DoomRPG_Error("Error with SDL_RWFromMem: %s\n", SDL_GetError());
-			//}
-			//sound->audioFiles[i].ptr = Mix_LoadMUS_RW(rw, SDL_TRUE);
 
 			sound->audioFiles[i].ptr = (fluid_player_t*)new_fluid_player(fluidSynth.synth);
 			fluid_player_add_mem((fluid_player_t*)sound->audioFiles[i].ptr, fdata, fSize);
@@ -130,25 +231,17 @@ Sound_t* Sound_init(Sound_t* sound, DoomRPG_t* doomRpg)
 		}
 	}
 #endif
-#endif // __EMSCRIPTEN__
 
 	return sound;
 }
 
 void Sound_free(Sound_t* sound, boolean freePtr)
 {
-#ifdef __EMSCRIPTEN__
-	// Audio disabled for web builds
-	if (freePtr) {
-		SDL_free(sound);
-	}
-#else
 	Sound_freeSounds(sound);
 
 #if INIT_ALLSOUNDS
 	for (int i = 0; i < MAX_AUDIOFILES; i++) {
 		if ((i == 0) || (i == 1) || (i == 3)) { // Midi Files
-			//Mix_FreeMusic((Mix_Music*)sound->audioFiles[i].ptr);
 			delete_fluid_player((fluid_player_t*)sound->audioFiles[i].ptr);
 		}
 		else {
@@ -161,23 +254,13 @@ void Sound_free(Sound_t* sound, boolean freePtr)
 	if (freePtr) {
 		SDL_free(sound);
 	}
-#endif
 }
 
 void Sound_stopSounds(Sound_t* sound)
 {
-#ifdef __EMSCRIPTEN__
-	// Audio disabled for web builds
-	sound->priority = 0;
-#else
 	int chan = 0;
 	do {
 		if (sound->soundChannel[chan].flags & SND_FLG_ISMUSIC) {
-			/*if (Mix_PlayingMusic()) {
-				Mix_HaltMusic();
-				sound->soundChannel[chan].flags = 0;
-			}*/
-
 			if (fluid_player_get_status(sound->soundChannel[chan].mediaAudioMusic) == FLUID_PLAYER_PLAYING) {
 				fluid_player_stop(sound->soundChannel[chan].mediaAudioMusic);
 				fluid_player_seek(sound->soundChannel[chan].mediaAudioMusic, 0);
@@ -192,19 +275,10 @@ void Sound_stopSounds(Sound_t* sound)
 		}
 	} while (++chan < (MAX_SOUNDCHANNELS + 1));
 	sound->priority = 0;
-#endif
 }
 
 void Sound_freeSound(Sound_t* sound, int chan)
 {
-#ifdef __EMSCRIPTEN__
-	// Audio disabled for web builds
-	SoundChannel_t* sChannel;
-	sChannel = &sound->soundChannel[chan];
-	sChannel->flags = 0;
-	sChannel->mediaAudioSound = NULL;
-	sChannel->mediaAudioMusic = NULL;
-#else
 	SoundChannel_t* sChannel;
 	sChannel = &sound->soundChannel[chan];
 
@@ -219,12 +293,6 @@ void Sound_freeSound(Sound_t* sound, int chan)
 		Mix_FreeChunk(sChannel->mediaAudioSound);
 #endif
 	}
-
-	/*if (sChannel->mediaAudioMusic) {
-		if (Mix_PlayingMusic()) {
-			Mix_HaltMusic();
-		}
-	}*/
 
 	if (sChannel->mediaAudioMusic) {
 		if (fluid_player_get_status(sChannel->mediaAudioMusic) == FLUID_PLAYER_PLAYING) {
@@ -242,15 +310,11 @@ void Sound_freeSound(Sound_t* sound, int chan)
 	sChannel->flags = 0;
 	sChannel->mediaAudioSound = NULL;
 	sChannel->mediaAudioMusic = NULL;
-#endif
 }
 
 int Sound_getState(Sound_t* sound, int resourceID)
 {
-#ifdef __EMSCRIPTEN__
-	// Audio disabled for web builds
-	return sound->nextplay;
-#else
+	(void)resourceID;
 	int chan = 0;
 	int play = 0;
 	do {
@@ -259,16 +323,11 @@ int Sound_getState(Sound_t* sound, int resourceID)
 		}
 	} while (++chan < MAX_SOUNDCHANNELS);
 
-	//printf("Sound_getState %d\n", sound->nextplay + play);
 	return sound->nextplay + play;
-#endif
 }
 
-int Sound_getFreeChanel(Sound_t* sound) {
-#ifdef __EMSCRIPTEN__
-	// Audio disabled for web builds
-	return -1;
-#else
+int Sound_getFreeChanel(Sound_t* sound)
+{
 	int chan = 0;
 	int play = -1;
 	do {
@@ -286,17 +345,10 @@ int Sound_getFreeChanel(Sound_t* sound) {
 	} while (++chan < MAX_SOUNDCHANNELS);
 
 	return play;
-#endif
 }
 
 void Sound_loadSound(Sound_t* sound, int chan, short resourceID)
 {
-#ifdef __EMSCRIPTEN__
-	// Audio disabled for web builds
-	(void)sound;
-	(void)chan;
-	(void)resourceID;
-#else
 #if !INIT_ALLSOUNDS
 	SDL_RWops* rw;
 #endif
@@ -328,7 +380,6 @@ void Sound_loadSound(Sound_t* sound, int chan, short resourceID)
 		}
 
 #if INIT_ALLSOUNDS
-		//sChannel->mediaAudioMusic = (Mix_Music*)sound->audioFiles[id].ptr;
 		sChannel->mediaAudioMusic = (fluid_player_t*)sound->audioFiles[id].ptr;
 #else
 		snprintf(fileName, sizeof(fileName), "%03d.mid", resourceID);
@@ -365,56 +416,31 @@ void Sound_loadSound(Sound_t* sound, int chan, short resourceID)
 	}
 
 	sChannel->flags = flags; // Restore flags
-#endif // __EMSCRIPTEN__
 }
 
 void Sound_readySound(Sound_t* sound, int chan)
 {
-#ifdef __EMSCRIPTEN__
-	// Audio disabled for web builds
-	(void)sound;
-	(void)chan;
-#else
 	SoundChannel_t* sChannel;
 	sChannel = &sound->soundChannel[chan];
 
 	if (sChannel->flags & SND_FLG_ISMUSIC) {
-		//Mix_VolumeMusic((sound->volume * MIX_MAX_VOLUME) / 100);
 		// Allowed range of synth.gain is 0.0 to 10.0
 		fluid_settings_setnum(fluidSynth.settings, "synth.gain", 1.0 * ((sound->volume * MIX_MAX_VOLUME) / 100) / 128.0);
 	}
 	else {
 		Mix_VolumeChunk(sound->soundChannel[chan].mediaAudioSound, (sound->volume * MIX_MAX_VOLUME) / 100);
 	}
-#endif
 }
 
 void Sound_playSound(Sound_t* sound, int resourceID, byte flags, int priority)
 {
-#ifdef __EMSCRIPTEN__
-	// Audio disabled for web builds
-	(void)sound;
-	(void)resourceID;
-	(void)flags;
-	(void)priority;
-#else
 	boolean sndPriority = sound->doomRpg->doomCanvas->sndPriority;
 	boolean isMusic = (flags & SND_FLG_ISMUSIC) ? true : false;
 
 	if (sound->soundEnabled != 0) {
 
-		resourceID = resourceID; //Sound_getFromResourceID(resourceID);
+		resourceID = resourceID;
 		if (resourceID >= 0) {
-
-			/*if (isMusic) {
-				printf("Sound_playSound %03d.mid\n", resourceID);
-			}
-			else {
-				printf("Sound_playSound %03d.wav\n", resourceID);
-			}*/
-
-			//printf("priority %d\n", priority);
-			//printf("sound->priority %d\n", sound->priority);
 
 			if (((priority < sound->priority) && Sound_getState(sound, resourceID) && !isMusic) && sndPriority) {
 				printf("Sound: Dynamic playback of %d prevented by priority (%d < %d)\n", resourceID, priority, sound->priority);
@@ -442,7 +468,6 @@ void Sound_playSound(Sound_t* sound, int resourceID, byte flags, int priority)
 
 					sound->priority = priority;
 					if (flags & SND_FLG_ISMUSIC) {
-						//Mix_PlayMusic(sound->soundChannel[sound->channel].mediaAudioMusic, (flags & SND_FLG_LOOP) ? -1 : 0);
 						fluid_player_set_loop(sound->soundChannel[sound->channel].mediaAudioMusic, (flags & SND_FLG_LOOP) ? -1 : 0);
 						fluid_player_play(sound->soundChannel[sound->channel].mediaAudioMusic);
 
@@ -456,7 +481,6 @@ void Sound_playSound(Sound_t* sound, int resourceID, byte flags, int priority)
 			}
 		}
 	}
-#endif
 }
 
 void Sound_freeSounds(Sound_t* sound)
@@ -480,20 +504,9 @@ int Sound_getFromResourceID(int resourceID)
 
 void Sound_updateVolume(Sound_t* sound)
 {
-#ifdef __EMSCRIPTEN__
-	// Audio disabled for web builds - just update the menu text
-	int menu = sound->doomRpg->menuSystem->menu;
-	if (menu == MENU_SOUND || menu == MENU_INGAME_SOUND) {
-		Menu_textVolume(sound->doomRpg->menu, sound->volume);
-	}
-#else
 	int chan = 0;
 	do {
 		if (sound->soundChannel[chan].flags & SND_FLG_ISMUSIC) {
-			/*if (Mix_PlayingMusic()) {
-				Mix_VolumeMusic((sound->volume * MIX_MAX_VOLUME) / 100);
-			}*/
-
 			if (fluid_player_get_status(sound->soundChannel[chan].mediaAudioMusic) == FLUID_PLAYER_PLAYING) {
 				// Allowed range of synth.gain is 0.0 to 10.0
 				fluid_settings_setnum(fluidSynth.settings, "synth.gain", 1.0 * ((sound->volume * MIX_MAX_VOLUME) / 100) / 128.0);
@@ -507,11 +520,9 @@ void Sound_updateVolume(Sound_t* sound)
 	} while (++chan < (MAX_SOUNDCHANNELS + 1));
 
 	int menu = sound->doomRpg->menuSystem->menu;
-	//if (menu == MENU_MAIN_OPTIONS || menu == MENU_INGAME_OPTIONS) { // Old
 	if (menu == MENU_SOUND || menu == MENU_INGAME_SOUND) {
 		Menu_textVolume(sound->doomRpg->menu, sound->volume);
 	}
-#endif
 }
 
 int Sound_minusVolume(Sound_t* sound, int volume)
@@ -533,3 +544,5 @@ int Sound_addVolume(Sound_t* sound, int volume)
 	Sound_updateVolume(sound);
 	return sound->volume;
 }
+
+#endif // __EMSCRIPTEN__
