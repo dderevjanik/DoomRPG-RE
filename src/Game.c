@@ -24,6 +24,22 @@
 
 #define CONFIG_VERSION 23 // New
 
+// Human-readable action names for config.ini key bindings
+static const char* actionNames[12] = {
+	"MoveForward",
+	"MoveBackward",
+	"TurnLeft",
+	"TurnRight",
+	"MoveLeft",
+	"MoveRight",
+	"NextWeapon",
+	"PrevWeapon",
+	"Attack",
+	"PassTurn",
+	"Automap",
+	"OpenMenu"
+};
+
 int Game_getResourceMapID(Game_t* game, char* mapName)
 {
 	for (int i = 0; i < MAPFILE_MAX; i++) {
@@ -717,7 +733,21 @@ void Game_loadConfig(Game_t* game)
 		sdlVideo.vSync = IniFile_getBool(ini, "Video", "VSync", SDL_TRUE);
 		sdlVideo.integerScaling = IniFile_getBool(ini, "Video", "IntegerScaling", SDL_FALSE);
 		sdlVideo.displaySoftKeys = IniFile_getBool(ini, "Video", "DisplaySoftKeys", SDL_TRUE);
-		sdlVideo.resolutionIndex = IniFile_getInt(ini, "Video", "ResolutionIndex", 1);
+		{
+			const char* resStr = IniFile_getString(ini, "Video", "Resolution", NULL);
+			sdlVideo.resolutionIndex = 1; // default
+			if (resStr) {
+				int w, h;
+				if (SDL_sscanf(resStr, "%dx%d", &w, &h) == 2) {
+					for (int r = 0; r < 14; r++) {
+						if (sdlVideoModes[r].width == w && sdlVideoModes[r].height == h) {
+							sdlVideo.resolutionIndex = r;
+							break;
+						}
+					}
+				}
+			}
+		}
 
 		// Mouse settings
 		if (game) {
@@ -733,8 +763,18 @@ void Game_loadConfig(Game_t* game)
 		if (game) {
 			for (int i = 0; i < 12; i++) {
 				for (int j = 0; j < KEYBINDS_MAX; j++) {
-					SDL_snprintf(keyName, sizeof(keyName), "Action%d_Bind%d", i, j);
-					keyMapping[i].keyBinds[j] = IniFile_getInt(ini, "KeyBindings", keyName, keyMappingDefault[i].keyBinds[j]);
+					SDL_snprintf(keyName, sizeof(keyName), "%s_Bind%d", actionNames[i], j);
+					const char* keyStr = IniFile_getString(ini, "KeyBindings", keyName, NULL);
+					if (keyStr) {
+						if (SDL_strcmp(keyStr, "None") == 0 || SDL_strcmp(keyStr, "-1") == 0) {
+							keyMapping[i].keyBinds[j] = -1;
+						} else {
+							SDL_Scancode sc = SDL_GetScancodeFromName(keyStr);
+							keyMapping[i].keyBinds[j] = (sc != SDL_SCANCODE_UNKNOWN) ? (int)sc : keyMappingDefault[i].keyBinds[j];
+						}
+					} else {
+						keyMapping[i].keyBinds[j] = keyMappingDefault[i].keyBinds[j];
+					}
 				}
 			}
 			SDL_memcpy(keyMappingTemp, keyMapping, sizeof(keyMapping));
@@ -1883,7 +1923,13 @@ void Game_saveConfig(Game_t* game, int num)
 	IniFile_setBool(ini, "Video", "VSync", sdlVideo.vSync);
 	IniFile_setBool(ini, "Video", "IntegerScaling", sdlVideo.integerScaling);
 	IniFile_setBool(ini, "Video", "DisplaySoftKeys", sdlVideo.displaySoftKeys);
-	IniFile_setInt(ini, "Video", "ResolutionIndex", sdlVideo.resolutionIndex);
+	{
+		char resStr[32];
+		SDL_snprintf(resStr, sizeof(resStr), "%dx%d",
+			sdlVideoModes[sdlVideo.resolutionIndex].width,
+			sdlVideoModes[sdlVideo.resolutionIndex].height);
+		IniFile_setString(ini, "Video", "Resolution", resStr);
+	}
 
 	// Mouse settings
 	IniFile_setInt(ini, "Mouse", "Sensitivity", game->doomRpg->doomCanvas->mouseSensitivity);
@@ -1896,8 +1942,13 @@ void Game_saveConfig(Game_t* game, int num)
 	// Key bindings
 	for (int i = 0; i < 12; i++) {
 		for (int j = 0; j < KEYBINDS_MAX; j++) {
-			SDL_snprintf(keyName, sizeof(keyName), "Action%d_Bind%d", i, j);
-			IniFile_setInt(ini, "KeyBindings", keyName, keyMapping[i].keyBinds[j]);
+			SDL_snprintf(keyName, sizeof(keyName), "%s_Bind%d", actionNames[i], j);
+			if (keyMapping[i].keyBinds[j] == -1) {
+				IniFile_setString(ini, "KeyBindings", keyName, "None");
+			} else {
+				const char* name = SDL_GetScancodeName((SDL_Scancode)keyMapping[i].keyBinds[j]);
+				IniFile_setString(ini, "KeyBindings", keyName, name ? name : "None");
+			}
 		}
 	}
 
