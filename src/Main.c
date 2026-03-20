@@ -1,8 +1,5 @@
 //Using SDL and standard IO
 #include <SDL.h>
-#ifndef __EMSCRIPTEN__
-#include <SDL_mixer.h>
-#endif
 #include <stdio.h>
 #include <zlib.h>
 
@@ -17,6 +14,7 @@
 #include "Hud.h"
 #include "MenuSystem.h"
 #include "SDL_Video.h"
+#include "Audio.h"
 #include "Z_Zip.h"
 
 extern DoomRPG_t* doomRpg;

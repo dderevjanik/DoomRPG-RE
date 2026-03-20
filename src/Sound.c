@@ -9,6 +9,7 @@
 #include "Menu.h"
 #include "MenuSystem.h"
 #include "SDL_Video.h"
+#include "Audio.h"
 #include "Z_Zip.h"
 
 #define INIT_ALLSOUNDS	1

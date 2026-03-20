@@ -18,6 +18,7 @@
 #include "ParticleSystem.h"
 #include "Combat.h"
 #include "SDL_Video.h"
+#include "Audio.h"
 #include "Z_Zip.h"
 
 

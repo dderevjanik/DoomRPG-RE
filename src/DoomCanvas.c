@@ -1,8 +1,5 @@
 
 #include <SDL.h>
-#ifndef __EMSCRIPTEN__
-#include <SDL_mixer.h>
-#endif
 #include <stdio.h>
 #include <string.h>
 

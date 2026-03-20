@@ -2,10 +2,6 @@
 
 //Using SDL and standard IO
 #include <SDL.h>
-#ifndef __EMSCRIPTEN__
-#include <SDL_mixer.h>
-#include <fluidsynth.h>
-#endif
 #include <stdio.h>
 
 #include "DoomRPG.h"
@@ -14,9 +10,6 @@
 
 SDLVideo_t sdlVideo;
 SDLController_t sdlController;
-#ifndef __EMSCRIPTEN__
-FluidSynth_t fluidSynth;
-#endif
 
 SDLVidModes_t sdlVideoModes[14] =
 {
@@ -267,60 +260,6 @@ void SDL_RenderDrawCircle(SDL_Renderer* renderer, int x, int y, int r)
 	}
 }
 
-
-//---------------
-void DoomRPG_InitAudio(void)
-{
-	printf("DoomRPG_InitAudio\n");
-
-#ifdef __EMSCRIPTEN__
-	// Audio is disabled for Emscripten builds
-	printf("Audio disabled for web build\n");
-#else
-	fluidSynth.settings = NULL;
-	fluidSynth.synth = NULL;
-	fluidSynth.adriver = NULL;
-
-	// create the settings
-	fluidSynth.settings = new_fluid_settings();
-	if (fluidSynth.settings == NULL) {
-		DoomRPG_Error("Failed to create the settings");
-	}
-
-	// create the synthesizer
-	fluidSynth.synth = new_fluid_synth(fluidSynth.settings);
-	if (fluidSynth.synth == NULL) {
-		DoomRPG_Error("Failed to create the synthesizer");
-	}
-
-	// create the audio driver
-	fluidSynth.adriver = new_fluid_audio_driver(fluidSynth.settings, fluidSynth.synth);
-	if (fluidSynth.synth == NULL) {
-		DoomRPG_Error("Failed to create the audio driver");
-	}
-
-	if (fluid_is_soundfont("gm.sf2")) {
-		fluid_synth_sfload(fluidSynth.synth, "gm.sf2", 1);
-	}
-	else {
-		DoomRPG_Error("Cannot find the soundfont %s file", "gm.sf2");
-	}
-
-	if (Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 2048) < 0) {
-		DoomRPG_Error("Could not initialize SDL Mixer: %s", Mix_GetError());
-	}
-#endif
-}
-
-void DoomRPG_CloseAudio(void) {
-#ifndef __EMSCRIPTEN__
-	delete_fluid_audio_driver(fluidSynth.adriver);
-	delete_fluid_synth(fluidSynth.synth);
-	delete_fluid_settings(fluidSynth.settings);
-
-	Mix_Quit();
-#endif
-}
 
 //--------------------
 
